@@ -1,0 +1,2 @@
+source qiskit-modern/bin/activate
+jupyter notebook
