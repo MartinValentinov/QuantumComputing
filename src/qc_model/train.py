@@ -42,6 +42,7 @@ def train_target(
     patience: int = 40,
     seed: int = 0,
     also_random_split: bool = True,
+    save_to: str | None = None,
     verbose: bool = True,
 ) -> dict:
     def say(m=""):
@@ -74,10 +75,37 @@ def train_target(
         "random": {},
     }
 
+    keep: dict = {}
     results["scaffold"] = _run_split(
         X, y, tr, va, te, hidden, dropout, epochs, lr, weight_decay,
-        batch_size, patience, seed, say, "SCAFFOLD SPLIT (honest)",
+        batch_size, patience, seed, say, "SCAFFOLD SPLIT (honest)", keep=keep,
     )
+
+    # Save the scaffold-split model, never the random-split one. The saved
+    # model should be the one whose reported score means something.
+    if save_to and keep:
+        from qc_model.nn import save as save_model
+
+        name = (symbol or target_chembl_id).upper()
+        path = Path(save_to) / f"{name}.npz"
+        save_model(
+            keep["model"], path,
+            train_fingerprints=X[tr][:, :n_bits],
+            meta={
+                "target": name,
+                "target_chembl_id": target_chembl_id,
+                "n_bits": n_bits, "radius": radius, "hidden": list(hidden),
+                "feature_mean": keep["feature_mean"].tolist(),
+                "feature_sd": keep["feature_sd"].tolist(),
+                "test_r2": keep["metrics"]["r2"],
+                "test_rmse": keep["metrics"]["rmse"],
+                "test_spearman": keep["metrics"]["spearman"],
+                "n_compounds": int(len(y)),
+                "split": "scaffold",
+                "n_train": int(len(tr)),
+            },
+        )
+        say(f"\n  saved model -> {path}")
 
     if also_random_split:
         rtr, rva, rte = random_split(len(y), seed=seed)
@@ -91,7 +119,7 @@ def train_target(
 
 
 def _run_split(X, y, tr, va, te, hidden, dropout, epochs, lr, weight_decay,
-               batch_size, patience, seed, say, title):
+               batch_size, patience, seed, say, title, keep=None):
     say(f"\n{title}")
     say("-" * len(title))
 
@@ -115,6 +143,12 @@ def _run_split(X, y, tr, va, te, hidden, dropout, epochs, lr, weight_decay,
                   weight_decay=weight_decay, batch_size=batch_size,
                   patience=patience, seed=seed, verbose=True, log_every=25)
     m_nn = evaluate(model.predict(x_te), y_te)
+
+    if keep is not None:
+        mean = X[tr].mean(axis=0)
+        sd = X[tr].std(axis=0)
+        sd[sd < 1e-8] = 1.0
+        keep.update(model=model, feature_mean=mean, feature_sd=sd, metrics=m_nn)
 
     say("")
     say(f"  {'model':<18}{'RMSE':>8}{'MAE':>8}{'R2':>8}{'Spearman':>10}")
@@ -157,6 +191,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--no-random-split", action="store_true")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--save-to", default="data/models",
+                    help="directory to write the trained model into")
     args = ap.parse_args(argv)
 
     conn = db.connect(args.db)
@@ -178,6 +214,7 @@ def main(argv: list[str] | None = None) -> int:
         hidden=tuple(int(h) for h in args.hidden.split(",")),
         dropout=args.dropout, epochs=args.epochs, lr=args.lr,
         weight_decay=args.weight_decay, patience=args.patience, seed=args.seed,
+        save_to=args.save_to,
         also_random_split=not args.no_random_split,
     )
 

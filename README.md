@@ -401,25 +401,69 @@ PYTHONPATH=src .venv/bin/python -m qc_ui
 ```
 
 Opens `http://127.0.0.1:8765`. Stdlib only — `http.server` plus one HTML file.
-No Flask, no npm, no build step, consistent with the rest of `qc_research`.
+No Flask, no npm, no build step.
 
 | View | What it does |
 |---|---|
-| **Landscape** | Sortable target table; click any row for the full dossier in a side drawer |
-| **Opportunity gaps** | Evidenced + tractable + undrugged |
-| **Trial failures** | Status pills and stop-reason bars, with the actual `whyStopped` text |
-| **Shortlist** | Runs the three-pass investigation, shows what moved after the deep dive |
-| **Ask** | The `qc_design` agent, with a live tool-call log |
+| **Pipeline** | Runs every package end to end and animates the result |
+| **Diseases** | Live Open Targets search; anything new gets ingested on first use |
+| **Cures** | Real approved and clinical-stage medicines, drawn, sortable, filterable |
+| **Targets** | Sortable landscape; click a row for the dossier drawer |
+| **Gaps** | Evidenced + tractable + undrugged |
+| **Trial failures** | Stop-reason bars with the actual `whyStopped` text |
+| **Ask** | The `qc_design` agent with a live tool-call log |
 
-Ingest, investigate and ask each take minutes, which is far past what a browser
-will wait on one request — so they run on a background thread behind a job id
-and the page polls, streaming progress into a log panel.
+### Drawing molecules
 
-Binds to **localhost only**. It serves an unauthenticated API onto a local
-database: fine on your own machine, not something to expose to a network.
+`depict.py` turns a SMILES string into a picture. SMILES carries connectivity
+but no geometry, so all of it is invented in three stages:
 
-`Ask` needs `ANTHROPIC_API_KEY` in the shell that started the server. Every
-other view works without it.
+1. **Ring systems first** — they are the rigid parts and they anchor the
+   drawing. A lone ring becomes a regular polygon; a fused ring is built off
+   the shared bond, on the far side, so naphthalene comes out as two hexagons
+   meeting at an edge.
+2. **Chains hang off the rings** — each atom one bond-length from its parent,
+   substituents fanned around the parent's existing bonds.
+3. **Relaxation cleans up** — pushes apart atoms that landed on top of each
+   other, holding ring atoms far stiffer than chain atoms.
+
+Carbons are implicit vertices, heteroatoms are labelled and CPK-coloured,
+double bonds get a second parallel line, and aromatic rings get an inscribed
+circle. Passing `animate=1` draws the bonds in as a stroke animation.
+
+Getting the fused-ring case right took two attempts: the first version walked
+the polygon in the wrong direction, folding each new ring back over the one it
+was fused to. Laying ring systems out independently and hoping relaxation
+pulled them together also failed — ring atoms are held stiff on purpose, so
+a multi-ring molecule stretched into a flat line. Both are fixed by placing
+each system as a rigid unit during one breadth-first walk of the whole molecule.
+
+### The pipeline view
+
+One click runs the lot:
+
+```
+01  Resolved the disease          pancreatic ductal adenocarcinoma → MONDO_0005184
+02  Ranked every target           15 surveyed, top 5 deep-dived, re-ranked on safety
+03  Selected ACVR1                precedented — competition, not feasibility
+04  Gathered measured chemistry   40 compounds with structures and potencies
+05  Model skipped                 not enough measured data to train honestly
+06  Scored every candidate        potency, druglikeness, evidence, safety, …
+07  Best candidate: MOMELOTINIB   overall 81.2%
+```
+
+The winner is drawn, animated, and scored across six categories, each 0–100%
+and each traceable to a named field: potency, druglikeness, target evidence,
+safety, selectivity, clinical precedent. A **Why it works** section is
+assembled from database rows — not generated — with the source named under
+each paragraph.
+
+**Two things it deliberately will not do.** It does not invent molecules: it
+selects and scores real measured chemistry, and calling that "designing a cure"
+would be a lie. And it refuses to show model predictions when the model does
+not earn them — below 250 measured compounds it does not train at all, and a
+held-out R² under 0.10 gets the model reported and then discarded rather than
+dressed up as a result.
 
 ---
 

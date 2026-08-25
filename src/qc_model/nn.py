@@ -238,3 +238,44 @@ def fit(
             p[:] = saved
 
     return {"history": history, "best_epoch": best["epoch"], "best_valid_rmse": best["rmse"]}
+
+
+# ---------------------------------------------------------------------------
+# persistence
+# ---------------------------------------------------------------------------
+
+def save(model: MLP, path, meta: dict | None = None,
+         train_fingerprints: "np.ndarray | None" = None) -> None:
+    """Weights plus whatever the caller needs to reproduce the features.
+
+    Feature settings travel with the weights on purpose: a model trained on
+    2048-bit radius-2 fingerprints silently produces nonsense if it is later
+    fed 1024-bit ones, and nothing raises.
+    """
+    import json
+    from pathlib import Path
+
+    import numpy as np
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    arrays = {f"p{i}": p for i, (p, _) in enumerate(model.params())}
+    if train_fingerprints is not None:
+        # Packed to bits: 3,500 x 2,048 floats is 28 MB, the same data as bits
+        # is under a megabyte, and Tanimoto only needs the bits.
+        arrays["train_fp"] = np.packbits(
+            (train_fingerprints > 0).astype(np.uint8), axis=1
+        )
+    np.savez_compressed(path, **arrays)
+    path.with_suffix(".meta.json").write_text(json.dumps(meta or {}, indent=2, default=str))
+
+
+def load(path, n_in: int, hidden: tuple[int, ...], dropout: float = 0.0) -> "MLP":
+    import numpy as np
+
+    model = MLP(n_in, hidden=hidden, dropout=dropout, seed=0)
+    data = np.load(str(path) if str(path).endswith(".npz") else f"{path}.npz")
+    for i, (p, _) in enumerate(model.params()):
+        p[:] = data[f"p{i}"]
+    model.train(False)
+    return model

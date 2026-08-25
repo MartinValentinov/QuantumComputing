@@ -17,6 +17,8 @@ from pathlib import Path
 from qc_research import db, dossier, investigate as inv_mod, queries
 from qc_research.pipeline import IngestConfig, ingest_disease
 from qc_research.sources import opentargets
+from qc_ui import pipeline as showcase
+from qc_draw import draw as draw_molecule
 from qc_ui.jobs import JobRunner
 
 STATIC = Path(__file__).parent / "static"
@@ -75,6 +77,71 @@ class API:
             )
         }
 
+    def search_diseases(self, q: dict) -> dict:
+        """Live Open Targets search, annotated with what the graph already holds."""
+        hits = opentargets.search_disease(q.get("q", ""), size=int(q.get("limit", 12)))
+        have = {
+            r["efo_id"]: r["n"]
+            for r in self.conn().execute(
+                "SELECT d.efo_id, COUNT(dt.ensembl_id) n FROM disease d "
+                "LEFT JOIN disease_target dt ON dt.efo_id = d.efo_id GROUP BY d.efo_id"
+            )
+        }
+        for h in hits:
+            h["in_graph"] = h["efo_id"] in have
+            h["n_targets"] = have.get(h["efo_id"], 0)
+        return {"matches": hits}
+
+    def cures(self, q: dict) -> dict:
+        """Drugs with a curated mechanism against any target for this disease.
+
+        These are real approved and clinical-stage medicines, not predictions --
+        the mechanism table only covers compounds a curator has annotated.
+        """
+        efo_id = self._efo(q)
+        rows = [
+            dict(r)
+            for r in self.conn().execute(
+                """SELECT c.chembl_id, c.pref_name, c.smiles, c.max_phase,
+                          c.molecular_weight, c.alogp, c.ro5_violations,
+                          m.action_type, m.mechanism_of_action,
+                          t.symbol, t.name AS target_name, dt.score AS assoc,
+                          MAX(a.pchembl_value) AS best_pchembl
+                   FROM mechanism m
+                   JOIN target t   ON t.chembl_id = m.target_chembl_id
+                   JOIN disease_target dt ON dt.ensembl_id = t.ensembl_id
+                   JOIN compound c ON c.chembl_id = m.chembl_id
+                   LEFT JOIN activity a
+                          ON a.chembl_id = c.chembl_id
+                         AND a.target_chembl_id = m.target_chembl_id
+                   WHERE dt.efo_id = ? AND c.smiles IS NOT NULL
+                   GROUP BY c.chembl_id, t.symbol
+                   ORDER BY c.max_phase DESC NULLS LAST, dt.score DESC""",
+                (efo_id,),
+            )
+        ]
+        return {"efo_id": efo_id, "n": len(rows), "cures": rows}
+
+    def depict(self, q: dict) -> dict:
+        smiles = q["smiles"]
+        try:
+            highlight = {
+                int(a) for a in (q.get("highlight") or "").split(",") if a.strip().isdigit()
+            }
+            svg = draw_molecule(
+                smiles,
+                width=int(q.get("w", 420)),
+                height=int(q.get("h", 320)),
+                animate=q.get("animate") in ("1", "true", "yes"),
+                highlight=highlight or None,
+            )
+        except Exception as e:
+            return {"error": f"cannot draw: {type(e).__name__}: {e}", "svg": None}
+        return {"svg": svg, "smiles": smiles}
+
+    def explain(self, body: dict) -> dict:
+        return showcase.explain(body["target"], body["candidate"])
+
     def dossier(self, q: dict) -> dict:
         d = dossier.build(
             self.conn(), q["symbol"], disease=q.get("disease"), skip_literature=True
@@ -101,6 +168,202 @@ class API:
         if not hits:
             raise ValueError(f"no disease matched {q.get('disease')!r}")
         return hits[0]["efo_id"]
+
+
+    # ---- cures, molecules, models ----
+
+    def cures(self, q: dict) -> dict:
+        """Drugs that act on any target linked to this disease.
+
+        The join is the whole point: Open Targets says which targets matter for
+        the disease, ChEMBL says which drugs act on those targets and how far
+        each one got. Neither source can answer this alone.
+        """
+        efo_id = self._efo(q)
+        rows = [
+            dict(r)
+            for r in self.conn().execute(
+                """SELECT DISTINCT
+                        c.chembl_id, c.pref_name, c.smiles, c.max_phase,
+                        c.molecular_weight, c.alogp, c.ro5_violations,
+                        m.action_type, m.mechanism_of_action,
+                        t.symbol, t.ensembl_id, t.name AS target_name,
+                        dt.score AS association_score
+                   FROM mechanism m
+                   JOIN target t         ON t.chembl_id = m.target_chembl_id
+                   JOIN disease_target dt ON dt.ensembl_id = t.ensembl_id
+                   JOIN compound c       ON c.chembl_id = m.chembl_id
+                  WHERE dt.efo_id = ?
+                    AND c.smiles IS NOT NULL
+                  ORDER BY m.max_phase DESC NULLS LAST, dt.score DESC""",
+                (efo_id,),
+            )
+        ]
+        approved = [r for r in rows if (r["max_phase"] or 0) >= 4]
+        return {
+            "efo_id": efo_id,
+            "n_total": len(rows),
+            "n_approved": len(approved),
+            "cures": rows,
+        }
+
+    def molecule(self, q: dict) -> dict:
+        """Everything needed to draw a molecule and say why it works."""
+        from qc_draw.features import detect, lipinski
+        from qc_draw.layout import layout
+        from qc_draw.render import to_svg
+
+        smiles = q.get("smiles")
+        record = None
+        if q.get("chembl_id"):
+            record = self.conn().execute(
+                "SELECT * FROM compound WHERE chembl_id = ?", (q["chembl_id"],)
+            ).fetchone()
+            if record is None:
+                raise ValueError(f"no compound {q['chembl_id']}")
+            smiles = record["smiles"]
+        if not smiles:
+            raise ValueError("pass chembl_id or smiles")
+
+        mol, pos = layout(smiles)
+        features = detect(mol)
+        highlight_name = q.get("highlight")
+        highlight = set()
+        if highlight_name:
+            highlight = next(
+                (f.atoms for f in features if f.name == highlight_name), set()
+            )
+
+        animate = q.get("animate") == "1"
+        svg = to_svg(mol, pos, width=int(q.get("w", 460)), height=int(q.get("h", 340)),
+                     highlight=highlight, animate=animate)
+
+        mechanisms = []
+        if q.get("chembl_id"):
+            mechanisms = [
+                dict(r)
+                for r in self.conn().execute(
+                    """SELECT m.action_type, m.mechanism_of_action, m.max_phase,
+                              t.symbol, t.ensembl_id, t.name AS target_name,
+                              t.function, t.pathways, t.is_essential, t.loeuf_bin
+                         FROM mechanism m
+                         LEFT JOIN target t ON t.chembl_id = m.target_chembl_id
+                        WHERE m.chembl_id = ?""",
+                    (q["chembl_id"],),
+                )
+            ]
+
+        return {
+            "chembl_id": q.get("chembl_id"),
+            "name": record["pref_name"] if record else None,
+            "smiles": smiles,
+            "svg": svg,
+            "n_atoms": mol.n_atoms,
+            "n_bonds": len(mol.bonds),
+            "features": [
+                {"name": f.name, "kind": f.kind, "why": f.why, "atoms": sorted(f.atoms)}
+                for f in features
+            ],
+            "lipinski": lipinski(mol),
+            "mechanisms": mechanisms,
+        }
+
+    def predict(self, q: dict) -> dict:
+        """Predicted potency from the from-scratch model, with a domain check."""
+        from qc_model.predict import available, get
+
+        symbol = (q.get("symbol") or "").upper()
+        if not symbol:
+            return {"available_models": available()}
+
+        predictor = get(symbol)
+        if predictor is None:
+            return {
+                "error": f"no trained model for {symbol}",
+                "available_models": available(),
+                "remedy": f"PYTHONPATH=src python -m qc_model {symbol}",
+            }
+
+        smiles = q.get("smiles")
+        if not smiles:
+            raise ValueError("pass smiles")
+        result = predictor.predict_smiles(smiles)
+        if result is None:
+            return {"error": "could not parse that SMILES"}
+        return result
+
+    def quantum(self, q: dict) -> dict:
+        """Qubit cost for a small molecule -- cheap, and it never runs VQE."""
+        try:
+            from qc_quantum.geometry import from_formula
+            from qc_quantum.hamiltonian import build_hamiltonian
+        except ImportError as e:
+            return {"error": "quantum dependencies missing", "detail": str(e)}
+
+        formula = q.get("formula", "H2O")
+        try:
+            mol = from_formula(formula)
+            qp = build_hamiltonian(mol, basis=q.get("basis", "sto3g"))
+        except Exception as e:
+            return {"error": f"{type(e).__name__}: {e}",
+                    "hint": "only small molecules ASE ships geometries for"}
+
+        n_q = qp.n_qubits
+        return {
+            "formula": formula, "n_atoms": mol.n_atoms, "n_qubits": n_q,
+            "n_pauli_terms": qp.n_pauli_terms,
+            "hartree_fock_energy": qp.hf_energy,
+            "feasibility": (
+                "seconds" if n_q <= 4
+                else "many minutes to hours" if n_q <= 12
+                else "impractical on a simulator"
+            ),
+            "note": (
+                "Measured on this machine: H2O at 10 qubits took 4,044 s for VQE "
+                "to reach chemical accuracy. CCSD(T) got a better answer in "
+                "under 0.01 s."
+            ),
+        }
+
+    def pipeline(self, _q: dict) -> dict:
+        """What every package in the repo currently holds. Drives the overview."""
+        from qc_model.predict import available
+
+        conn = self.conn()
+        counts = db.stats(conn)
+        top = [
+            dict(r)
+            for r in conn.execute(
+                """SELECT d.name, d.efo_id, COUNT(DISTINCT dt.ensembl_id) AS targets
+                     FROM disease d LEFT JOIN disease_target dt ON dt.efo_id = d.efo_id
+                 GROUP BY d.efo_id"""
+            )
+        ]
+        approved = conn.execute(
+            "SELECT COUNT(DISTINCT chembl_id) n FROM compound WHERE max_phase >= 4"
+        ).fetchone()["n"]
+
+        import os
+
+        return {
+            "qc_research": {
+                "counts": counts, "diseases": top,
+                "sources": ["Open Targets", "ChEMBL", "ClinicalTrials.gov", "PubMed"],
+            },
+            "qc_quantum": {
+                "verified": "H2O, 10 qubits, VQE reached chemical accuracy in 4,044 s",
+                "classical_comparison": "CCSD(T) beat it in under 0.01 s",
+            },
+            "qc_model": {
+                "models": available(),
+                "approved_compounds_in_graph": approved,
+            },
+            "qc_design": {
+                "tools": 10,
+                "agent_ready": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            },
+            "qc_draw": {"renders": "SMILES to SVG, no cheminformatics library"},
+        }
 
     # ---- background jobs ----
 
@@ -196,6 +459,18 @@ class API:
 
         return self.jobs.start("ask", work).to_dict()
 
+    def showcase(self, body: dict) -> dict:
+        """The full pipeline, as a background job with stage-by-stage progress."""
+        disease = body["disease"]
+        strategy = body.get("strategy", "balanced")
+        use_model = bool(body.get("use_model", True))
+
+        def work(log):
+            return showcase.run(self.db_path, disease, strategy=strategy,
+                                log=log, use_model=use_model)
+
+        return self.jobs.start("showcase", work).to_dict()
+
     def job(self, q: dict) -> dict:
         j = self.jobs.get(q.get("id", ""))
         if j is None:
@@ -212,12 +487,22 @@ def make_handler(api: API):
         "/api/failures": api.failures,
         "/api/compounds": api.compounds,
         "/api/dossier": api.dossier,
+        "/api/cures": api.cures,
+        "/api/molecule": api.molecule,
+        "/api/predict": api.predict,
+        "/api/quantum": api.quantum,
+        "/api/pipeline": api.pipeline,
         "/api/job": api.job,
+        "/api/search_diseases": api.search_diseases,
+        "/api/cures": api.cures,
+        "/api/depict": api.depict,
     }
     POST_ROUTES = {
         "/api/ingest": api.ingest,
         "/api/investigate": api.investigate,
         "/api/ask": api.ask,
+        "/api/showcase": api.showcase,
+        "/api/explain": api.explain,
     }
 
     class Handler(BaseHTTPRequestHandler):

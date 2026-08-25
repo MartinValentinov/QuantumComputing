@@ -22,18 +22,16 @@ body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 ui-sans-se
 button,input,select{font:inherit;color:inherit}
 h1,h2,h3{margin:0;line-height:1.2}
 
-/* ---- shell ---- */
-header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:30}
 .brand{font-weight:700;letter-spacing:-.02em;font-size:16px;white-space:nowrap}
 .brand span{color:var(--oxygen)}
 .grow{flex:1}
-.counts{display:flex;gap:14px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.counts{display:flex;gap:14px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-wrap:wrap}
 .counts b{color:var(--ink);font-weight:600}
 
-/* ---- controls ---- */
-.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--rule);background:var(--surface)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:11px 20px;border-bottom:1px solid var(--rule);background:var(--surface)}
 select,input[type=text]{padding:6px 10px;border:1px solid var(--firm);border-radius:5px;background:var(--paper);min-width:150px}
-input[type=text]{min-width:280px}
+input[type=text]{min-width:250px}
 button{padding:6px 13px;border:1px solid var(--firm);border-radius:5px;background:var(--paper);cursor:pointer;font-weight:500}
 button:hover:not(:disabled){border-color:var(--muted)}
 button:disabled{opacity:.45;cursor:not-allowed}
@@ -41,14 +39,13 @@ button.primary{background:var(--oxygen);border-color:var(--oxygen);color:#fff}
 button.primary:hover:not(:disabled){filter:brightness(1.08)}
 :focus-visible{outline:2px solid var(--nitrogen);outline-offset:2px}
 
-nav{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--rule);background:var(--surface);overflow-x:auto}
+nav{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--rule);background:var(--surface);overflow-x:auto;position:sticky;top:53px;z-index:29}
 nav button{border:none;border-bottom:2px solid transparent;border-radius:0;background:none;padding:9px 14px;color:var(--muted);white-space:nowrap}
 nav button.on{color:var(--ink);border-bottom-color:var(--oxygen);font-weight:600}
 
 main{padding:20px;max-width:1500px}
 .panel{display:none}.panel.on{display:block}
 
-/* ---- tables ---- */
 .tw{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{text-align:left;padding:7px 11px;border-bottom:1px solid var(--rule);white-space:nowrap}
@@ -60,9 +57,8 @@ tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--sunken)}
 td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 td.sym{font-family:var(--mono);font-weight:600;color:var(--nitrogen)}
-td.wide{white-space:normal;min-width:220px;color:var(--muted)}
+td.wide{white-space:normal;min-width:200px;color:var(--muted)}
 
-/* ---- bits ---- */
 .pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600;font-family:var(--mono)}
 .pill.y{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
 .pill.n{background:var(--sunken);color:var(--muted)}
@@ -76,15 +72,13 @@ td.wide{white-space:normal;min-width:220px;color:var(--muted)}
 h2.sec{font-size:15px;margin:22px 0 9px}
 h2.sec:first-child{margin-top:0}
 .sub{color:var(--muted);font-size:12px;margin-bottom:12px}
+.sub b{color:var(--ink-soft)}
 
-/* ---- log ---- */
-.log{font-family:var(--mono);font-size:11.5px;background:var(--sunken);border:1px solid var(--rule);border-left:3px solid var(--nitrogen);border-radius:5px;padding:11px 13px;max-height:260px;overflow-y:auto;white-space:pre-wrap;color:var(--ink-soft)}
+.log{font-family:var(--mono);font-size:11.5px;background:var(--sunken);border:1px solid var(--rule);border-left:3px solid var(--nitrogen);border-radius:5px;padding:11px 13px;max-height:240px;overflow-y:auto;white-space:pre-wrap;color:var(--ink-soft)}
 .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--firm);border-top-color:var(--oxygen);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation:none}}
 
-/* ---- cards ---- */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:13px}
 .card{border:1px solid var(--rule);border-radius:7px;background:var(--surface);padding:14px}
 .card h3{font-size:14px;margin-bottom:3px;font-family:var(--mono);color:var(--nitrogen)}
 .card .verdict{font-size:12px;color:var(--ink-soft);margin:7px 0 10px;font-style:italic}
@@ -97,14 +91,59 @@ h2.sec:first-child{margin-top:0}
 .comp{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--sunken);color:var(--muted)}
 .comp b{color:var(--ink)}
 
-/* ---- drawer ---- */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .18s;z-index:40}
+/* ---- molecules ---- */
+.mol{background:var(--sunken);border-radius:6px;border:1px solid var(--rule);color:var(--ink-soft);display:block;overflow:hidden}
+.mol svg{display:block;width:100%;height:auto}
+.cure{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s}
+.cure:hover{border-color:var(--nitrogen);transform:translateY(-2px)}
+.cure .body{padding:12px 14px}
+.cure .nm{font-weight:600;font-size:13.5px;margin-bottom:2px}
+.cure .moa{font-size:11.5px;color:var(--muted);margin-top:6px;white-space:normal;line-height:1.45}
+.cure .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;background:var(--sunken);color:var(--muted)}
+.tag.t{color:var(--nitrogen)}
+
+/* ---- pipeline ---- */
+.stages{display:flex;flex-direction:column;gap:0;margin:14px 0;border-left:2px solid var(--rule);padding-left:0}
+.stage{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:11px 0 11px 16px;position:relative;
+  opacity:0;transform:translateX(-10px);transition:opacity .35s ease,transform .35s ease}
+.stage.in{opacity:1;transform:none}
+.stage::before{content:"";position:absolute;left:-7px;top:18px;width:12px;height:12px;border-radius:50%;background:var(--oxygen);border:2px solid var(--paper)}
+.stage .n{font-family:var(--mono);font-size:11px;color:var(--oxygen);font-weight:600;padding-top:2px}
+.stage .t{font-weight:600;font-size:13.5px}
+.stage .d{font-size:12px;color:var(--muted);margin-top:2px}
+.stage.live::before{background:var(--nitrogen);animation:pulse 1.1s ease infinite}
+@keyframes pulse{50%{transform:scale(1.4);opacity:.55}}
+
+.hero{display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:18px;align-items:start;border:1px solid var(--rule);border-radius:9px;background:var(--surface);padding:18px;margin-top:6px}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
+.hero h2{font-size:19px;letter-spacing:-.01em}
+
+.gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:11px;margin-top:14px}
+.gauge{background:var(--sunken);border-radius:7px;padding:11px 12px}
+.gauge .lab{font-size:10.5px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gauge .val{font-family:var(--mono);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin:4px 0 6px;line-height:1}
+.gauge .track{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
+.gauge .track i{display:block;height:100%;width:0;border-radius:3px;transition:width .9s cubic-bezier(.22,1,.36,1)}
+.g-hi i{background:var(--good)} .g-hi .val{color:var(--good)}
+.g-md i{background:var(--warn)} .g-md .val{color:var(--warn)}
+.g-lo i{background:var(--oxygen)} .g-lo .val{color:var(--oxygen)}
+.overall{display:flex;align-items:baseline;gap:10px;margin-top:12px}
+.overall b{font-family:var(--mono);font-size:32px;line-height:1}
+
+.why{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+.why section{border-left:3px solid var(--nitrogen);padding-left:12px}
+.why h4{margin:0 0 3px;font-size:12.5px}
+.why p{margin:0;font-size:12.5px;color:var(--ink-soft);line-height:1.6}
+.why .src{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px}
+
+/* ---- drawer / modal ---- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .18s;z-index:40}
 .scrim.on{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(660px,94vw);background:var(--surface);border-left:1px solid var(--rule);transform:translateX(100%);transition:transform .22s;z-index:41;overflow-y:auto;padding:20px}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(700px,95vw);background:var(--surface);border-left:1px solid var(--rule);transform:translateX(100%);transition:transform .22s;z-index:41;overflow-y:auto;padding:20px}
 .drawer.on{transform:none}
-@media (prefers-reduced-motion:reduce){.scrim,.drawer{transition:none}}
 .drawer .x{position:absolute;top:14px;right:16px}
-.kv{display:grid;grid-template-columns:130px 1fr;gap:5px 12px;font-size:12.5px;margin:12px 0}
+.kv{display:grid;grid-template-columns:132px 1fr;gap:5px 12px;font-size:12.5px;margin:12px 0}
 .kv dt{color:var(--muted);font-family:var(--mono);font-size:11px}
 .kv dd{margin:0;color:var(--ink-soft)}
 .evi{display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0;font-family:var(--mono)}
@@ -112,13 +151,18 @@ h2.sec:first-child{margin-top:0}
 .evi .track{flex:1;height:6px;background:var(--sunken);border-radius:3px;overflow:hidden}
 .evi .track i{display:block;height:100%;background:var(--nitrogen)}
 
-/* ---- ask ---- */
 .answer{border:1px solid var(--rule);border-radius:7px;background:var(--surface);padding:16px;white-space:pre-wrap;line-height:1.62}
 .askrow{display:flex;gap:8px;margin-bottom:12px}
 .askrow input{flex:1;min-width:0}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .chip{font-size:12px;padding:4px 10px;border:1px solid var(--rule);border-radius:99px;background:var(--surface);cursor:pointer;color:var(--muted)}
 .chip:hover{border-color:var(--nitrogen);color:var(--nitrogen)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .stage{opacity:1;transform:none}
+  .gauge .track i{transition:none}
+}
 </style>
 </head>
 <body>
@@ -127,37 +171,69 @@ h2.sec:first-child{margin-top:0}
   <div class="brand">QC<span>·</span>Research</div>
   <div class="counts" id="counts"></div>
   <div class="grow"></div>
-  <div class="counts" id="dbname"></div>
+  <div class="counts"><span id="active"></span></div>
 </header>
 
 <div class="bar">
   <label for="disease" style="color:var(--muted);font-size:12px">Disease</label>
   <select id="disease"></select>
-  <input type="text" id="newDisease" placeholder="add another — e.g. glioblastoma">
-  <button id="btnIngest">Add to graph</button>
   <div class="grow"></div>
   <select id="strategy" title="Ranking strategy">
     <option value="balanced">balanced</option>
     <option value="novel">novel — find unexploited</option>
     <option value="fast">fast — existing chemistry</option>
   </select>
-  <button class="primary" id="btnInvestigate">Investigate</button>
+  <button class="primary" id="btnPipeline">▶ Run full pipeline</button>
 </div>
 
 <nav>
-  <button data-tab="landscape" class="on">Landscape</button>
-  <button data-tab="gaps">Opportunity gaps</button>
+  <button data-tab="pipeline" class="on">Pipeline</button>
+  <button data-tab="diseases">Diseases</button>
+  <button data-tab="cures">Cures</button>
+  <button data-tab="landscape">Targets</button>
+  <button data-tab="gaps">Gaps</button>
   <button data-tab="trials">Trial failures</button>
-  <button data-tab="shortlist">Shortlist</button>
   <button data-tab="ask">Ask</button>
 </nav>
 
 <main>
   <div id="banner"></div>
 
-  <section class="panel on" id="p-landscape">
+  <section class="panel on" id="p-pipeline">
+    <h2 class="sec">Full pipeline</h2>
+    <div class="sub">Every package in the repo runs in sequence: <b>qc_research</b> ingests and ranks targets, <b>qc_model</b> trains a potency predictor from scratch on the winner's chemistry, and the best-supported candidate gets scored across six categories. It selects and scores real measured chemistry — it does not invent molecules.</div>
+    <div id="pipeOut"><div class="note">Pick a disease above and press <b>Run full pipeline</b>.</div></div>
+  </section>
+
+  <section class="panel" id="p-diseases">
+    <h2 class="sec">Find a disease</h2>
+    <div class="sub">Live search against the Open Targets ontology. Anything not yet in your graph gets ingested on first use.</div>
+    <div class="askrow">
+      <input type="text" id="dq" placeholder="glioblastoma, Parkinson disease, type 2 diabetes…">
+      <button id="btnSearch">Search</button>
+    </div>
+    <div id="dResults"></div>
+  </section>
+
+  <section class="panel" id="p-cures">
+    <h2 class="sec">Known medicines</h2>
+    <div class="sub">Drugs with a <b>curated mechanism of action</b> against a target linked to this disease. Real approved and clinical-stage compounds from ChEMBL — not predictions. Click any card for the structure and the mechanism.</div>
+    <div class="askrow" style="margin-bottom:10px">
+      <select id="cureSort" style="min-width:200px">
+        <option value="phase">sort: clinical phase</option>
+        <option value="name">sort: name</option>
+        <option value="target">sort: target</option>
+        <option value="potency">sort: potency</option>
+        <option value="mw">sort: molecular weight</option>
+      </select>
+      <input type="text" id="cureFilter" placeholder="filter by name, target or mechanism…">
+    </div>
+    <div id="cures"><div class="note">Select a disease to see its medicines.</div></div>
+  </section>
+
+  <section class="panel" id="p-landscape">
     <h2 class="sec">Target landscape</h2>
-    <div class="sub">Association score crossed with how much chemical matter exists. Click any row for the full dossier. Click a header to sort.</div>
+    <div class="sub">Association score crossed with how much chemical matter exists. Click a row for the full dossier; click a header to sort.</div>
     <div class="tw"><table id="t-landscape"></table></div>
   </section>
 
@@ -173,12 +249,6 @@ h2.sec:first-child{margin-top:0}
     <div id="trials"></div>
   </section>
 
-  <section class="panel" id="p-shortlist">
-    <h2 class="sec">Ranked shortlist</h2>
-    <div class="sub">Survey → deep dive → re-rank. Press <b>Investigate</b> above to run it.</div>
-    <div id="shortlist"><div class="note">No investigation run yet.</div></div>
-  </section>
-
   <section class="panel" id="p-ask">
     <h2 class="sec">Ask the agent</h2>
     <div class="sub">Claude plans and interprets; the tools measure. It cannot state a number it did not read from a tool result.</div>
@@ -192,315 +262,543 @@ h2.sec:first-child{margin-top:0}
 </main>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-label="Target dossier"><button class="x" id="closeDrawer">Close</button><div id="drawerBody"></div></aside>
+<aside class="drawer" id="drawer" aria-label="Detail"><button class="x" id="closeDrawer">Close</button><div id="drawerBody"></div></aside>
 
 <script>
 const $ = s => document.querySelector(s);
-const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h !== undefined) n.innerHTML = h; return n; };
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const num = (v, d = 2) => (v === null || v === undefined || v === '' || Number.isNaN(+v)) ? '—' : (+v).toFixed(d);
+const el = (t,c,h) => { const n=document.createElement(t); if(c)n.className=c; if(h!==undefined)n.innerHTML=h; return n; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = (v,d=2) => (v===null||v===undefined||v===''||Number.isNaN(+v)) ? '—' : (+v).toFixed(d);
 
-let STATE = { disease: null, landscape: [], gaps: [], sort: {} };
+let STATE = { efo:null, name:'', landscape:[], gaps:[], cures:[], sort:{}, pipeline:null };
 
-function banner(msg, kind = 'err') {
-  $('#banner').innerHTML = msg ? `<div class="${kind}">${esc(msg)}</div>` : '';
-}
+function banner(msg){ $('#banner').innerHTML = msg ? `<div class="err">${esc(msg)}</div>` : ''; }
 
-async function api(path, opts) {
+async function api(path, opts){
   const r = await fetch(path, opts);
-  const j = await r.json().catch(() => ({ error: 'bad JSON from server' }));
-  if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
+  const j = await r.json().catch(()=>({error:'bad JSON from server'}));
+  if(!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
   return j;
 }
 
-// ---------- tables ----------
-function renderTable(tableEl, rows, cols, key) {
-  tableEl.innerHTML = '';
-  if (!rows.length) {
-    tableEl.innerHTML = `<tbody><tr><td class="note">Nothing here yet. Use <b>Add to graph</b> or <b>Investigate</b>.</td></tr></tbody>`;
-    return;
-  }
-  const s = STATE.sort[key] || {};
-  const thead = el('thead'); const tr = el('tr');
-  cols.forEach(c => {
-    const th = el('th', (s.col === c.k ? (s.asc ? 'asc sorted' : 'sorted') : ''), esc(c.t));
-    th.title = c.help || '';
-    th.onclick = () => {
-      STATE.sort[key] = { col: c.k, asc: s.col === c.k ? !s.asc : false };
-      renderTable(tableEl, rows, cols, key);
+async function runJob(path, body, logEl, onProgress){
+  const job = await api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return new Promise((resolve,reject)=>{
+    const tick = async () => {
+      try{
+        const j = await api('/api/job?id='+job.id);
+        if(logEl){ logEl.textContent=(j.progress||[]).join('\n')||'working…'; logEl.scrollTop=logEl.scrollHeight; }
+        onProgress && onProgress(j);
+        if(j.status==='running') return setTimeout(tick,800);
+        if(j.status==='error') return reject(new Error(j.error));
+        resolve(j.result);
+      }catch(e){ reject(e); }
     };
+    setTimeout(tick,500);
+  });
+}
+
+// ---------- molecules ----------
+const MOL_CACHE = new Map();
+async function molSvg(smiles, w=380, h=260, animate=false){
+  const key = `${smiles}|${w}|${h}|${animate}`;
+  if(MOL_CACHE.has(key)) return MOL_CACHE.get(key);
+  try{
+    const j = await api(`/api/depict?smiles=${encodeURIComponent(smiles)}&w=${w}&h=${h}${animate?'&animate=1':''}`);
+    const svg = j.svg || `<div class="note">${esc(j.error||'cannot draw')}</div>`;
+    MOL_CACHE.set(key,svg);
+    return svg;
+  }catch(e){ return `<div class="note">${esc(e.message)}</div>`; }
+}
+async function fillMol(node, smiles, w, h, animate){
+  node.innerHTML = '<div class="note"><span class="spin"></span></div>';
+  node.innerHTML = await molSvg(smiles,w,h,animate);
+}
+
+// ---------- tables ----------
+function renderTable(tableEl, rows, cols, key){
+  tableEl.innerHTML='';
+  if(!rows.length){ tableEl.innerHTML='<tbody><tr><td class="note">Nothing here yet.</td></tr></tbody>'; return; }
+  const s = STATE.sort[key]||{};
+  const thead=el('thead'), tr=el('tr');
+  cols.forEach(c=>{
+    const th=el('th',(s.col===c.k?(s.asc?'asc sorted':'sorted'):''),esc(c.t));
+    th.title=c.help||'';
+    th.onclick=()=>{ STATE.sort[key]={col:c.k,asc:s.col===c.k?!s.asc:false}; renderTable(tableEl,rows,cols,key); };
     tr.appendChild(th);
   });
   thead.appendChild(tr); tableEl.appendChild(thead);
-
-  let data = rows.slice();
-  if (s.col) {
-    data.sort((a, b) => {
-      const x = a[s.col], y = b[s.col];
-      const bothNum = !isNaN(parseFloat(x)) && !isNaN(parseFloat(y));
-      const cmp = bothNum ? (parseFloat(x) - parseFloat(y)) : String(x ?? '').localeCompare(String(y ?? ''));
-      return s.asc ? cmp : -cmp;
-    });
-  }
-
-  const tb = el('tbody');
-  data.forEach(r => {
-    const row = el('tr');
-    row.onclick = () => openDossier(r.symbol);
-    cols.forEach(c => row.appendChild(c.render(r)));
-    tb.appendChild(row);
+  let data=rows.slice();
+  if(s.col) data.sort((a,b)=>{
+    const x=a[s.col],y=b[s.col];
+    const bothNum=!isNaN(parseFloat(x))&&!isNaN(parseFloat(y));
+    const cmp=bothNum?(parseFloat(x)-parseFloat(y)):String(x??'').localeCompare(String(y??''));
+    return s.asc?cmp:-cmp;
   });
+  const tb=el('tbody');
+  data.forEach(r=>{ const row=el('tr'); row.onclick=()=>openDossier(r.symbol); cols.forEach(c=>row.appendChild(c.render(r))); tb.appendChild(row); });
   tableEl.appendChild(tb);
 }
-
-const tdNum = (v, d = 2) => el('td', 'num', num(v, d));
-const yn = v => el('td', '', `<span class="pill ${v ? 'y' : 'n'}">${v ? 'yes' : 'no'}</span>`);
-
-const LANDSCAPE_COLS = [
-  { k: 'symbol', t: 'target', render: r => el('td', 'sym', esc(r.symbol)) },
-  { k: 'association_score', t: 'assoc', help: 'Open Targets association score',
-    render: r => el('td', '', `<div class="bar-cell"><span class="meter"><i style="width:${Math.min(100,(r.association_score||0)/0.6*100)}%"></i></span><span style="font-family:var(--mono)">${num(r.association_score,3)}</span></div>`) },
-  { k: 'n_actives', t: 'actives', help: 'distinct compounds measured against this target', render: r => tdNum(r.n_actives, 0) },
-  { k: 'best_pchembl', t: 'best pX', help: '−log10 molar potency; 9 = 1 nM', render: r => tdNum(r.best_pchembl) },
-  { k: 'n_clinical_drugs', t: 'drugs', help: 'compounds with a curated mechanism', render: r => tdNum(r.n_clinical_drugs, 0) },
-  { k: 'highest_phase', t: 'phase', render: r => tdNum(r.highest_phase, 0) },
-  { k: 'small_molecule_tractable', t: 'SM', help: 'small-molecule tractable', render: r => yn(r.small_molecule_tractable) },
-  { k: 'antibody_tractable', t: 'AB', help: 'antibody tractable', render: r => yn(r.antibody_tractable) },
-  { k: 'name', t: 'name', render: r => el('td', 'wide', esc((r.name || '').slice(0, 60))) },
+const tdNum=(v,d=2)=>el('td','num',num(v,d));
+const yn=v=>el('td','',`<span class="pill ${v?'y':'n'}">${v?'yes':'no'}</span>`);
+const LANDSCAPE_COLS=[
+  {k:'symbol',t:'target',render:r=>el('td','sym',esc(r.symbol))},
+  {k:'association_score',t:'assoc',help:'Open Targets association score',
+   render:r=>el('td','',`<div class="bar-cell"><span class="meter"><i style="width:${Math.min(100,(r.association_score||0)/0.6*100)}%"></i></span><span style="font-family:var(--mono)">${num(r.association_score,3)}</span></div>`)},
+  {k:'n_actives',t:'actives',render:r=>tdNum(r.n_actives,0)},
+  {k:'best_pchembl',t:'best pX',help:'−log10 molar potency; 9 = 1 nM',render:r=>tdNum(r.best_pchembl)},
+  {k:'n_clinical_drugs',t:'drugs',render:r=>tdNum(r.n_clinical_drugs,0)},
+  {k:'highest_phase',t:'phase',render:r=>tdNum(r.highest_phase,0)},
+  {k:'small_molecule_tractable',t:'SM',render:r=>yn(r.small_molecule_tractable)},
+  {k:'antibody_tractable',t:'AB',render:r=>yn(r.antibody_tractable)},
+  {k:'name',t:'name',render:r=>el('td','wide',esc((r.name||'').slice(0,60)))},
 ];
 
-// ---------- loaders ----------
-async function loadStats() {
+// ---------- loading ----------
+async function loadStats(){
   const s = await api('/api/stats');
-  const c = s.counts;
-  $('#counts').innerHTML = ['target', 'compound', 'activity', 'trial', 'paper']
-    .map(k => `${k} <b>${c[k]}</b>`).join('');
-  const sel = $('#disease');
-  const prev = sel.value;
-  sel.innerHTML = s.diseases.map(d => `<option value="${esc(d.efo_id)}">${esc(d.name)} (${d.n_targets})</option>`).join('');
-  if (!s.diseases.length) {
-    sel.innerHTML = '<option value="">— graph is empty —</option>';
-  } else {
-    sel.value = prev && [...sel.options].some(o => o.value === prev) ? prev : s.diseases[0].efo_id;
-    STATE.disease = sel.value;
+  const c=s.counts;
+  $('#counts').innerHTML=['target','compound','activity','trial'].map(k=>`${k} <b>${c[k]}</b>`).join('');
+  const sel=$('#disease'); const prev=sel.value;
+  sel.innerHTML = s.diseases.length
+    ? s.diseases.map(d=>`<option value="${esc(d.efo_id)}">${esc(d.name)} (${d.n_targets})</option>`).join('')
+    : '<option value="">— graph is empty, search a disease —</option>';
+  if(s.diseases.length){
+    sel.value = prev && [...sel.options].some(o=>o.value===prev) ? prev : s.diseases[0].efo_id;
+    STATE.efo=sel.value;
+    STATE.name=sel.selectedOptions[0].textContent.replace(/\s*\(\d+\)$/,'');
+    $('#active').textContent=STATE.name;
   }
   return s;
 }
 
-async function loadDisease() {
-  const efo = $('#disease').value;
-  if (!efo) return;
-  STATE.disease = efo;
+async function loadDisease(){
+  const efo=$('#disease').value; if(!efo) return;
+  STATE.efo=efo;
+  STATE.name=$('#disease').selectedOptions[0].textContent.replace(/\s*\(\d+\)$/,'');
+  $('#active').textContent=STATE.name;
   banner('');
-  try {
-    const [l, g] = await Promise.all([
-      api('/api/landscape?efo_id=' + encodeURIComponent(efo)),
-      api('/api/gaps?efo_id=' + encodeURIComponent(efo)),
+  try{
+    const [l,g]=await Promise.all([
+      api('/api/landscape?efo_id='+encodeURIComponent(efo)),
+      api('/api/gaps?efo_id='+encodeURIComponent(efo)),
     ]);
-    STATE.landscape = l.targets; STATE.gaps = g.targets;
-    renderTable($('#t-landscape'), l.targets, LANDSCAPE_COLS, 'landscape');
-    renderTable($('#t-gaps'), g.targets, LANDSCAPE_COLS, 'gaps');
-    loadTrials(efo);
-  } catch (e) { banner(e.message); }
+    STATE.landscape=l.targets; STATE.gaps=g.targets;
+    renderTable($('#t-landscape'),l.targets,LANDSCAPE_COLS,'landscape');
+    renderTable($('#t-gaps'),g.targets,LANDSCAPE_COLS,'gaps');
+    loadTrials(efo); loadCures(efo);
+  }catch(e){ banner(e.message); }
 }
 
-async function loadTrials(efo) {
-  try {
-    const f = await api('/api/failures?efo_id=' + encodeURIComponent(efo));
-    const buckets = f.stop_reason_buckets || {};
-    const max = Math.max(1, ...Object.values(buckets));
-    const status = Object.entries(f.by_status || {})
-      .map(([k, v]) => `<span class="pill ${/TERMINATED|WITHDRAWN/.test(k) ? 'r' : /UNKNOWN|NO_LONGER/.test(k) ? 'w' : 'n'}">${esc(k.toLowerCase())} ${v}</span>`).join(' ');
-    const reasons = Object.entries(buckets).map(([k, v]) =>
-      `<div class="evi"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${v / max * 100}%;background:var(--oxygen)"></i></span><span>${v}</span></div>`).join('');
-    const ex = (f.examples || []).slice(0, 8).map(e =>
-      `<tr><td class="sym">${esc(e.nct_id)}</td><td class="num">${esc(e.phase || '—')}</td><td class="wide">${esc(e.reason || '')}</td></tr>`).join('');
-    $('#trials').innerHTML = `
-      <div class="card" style="margin-bottom:16px">
-        <div style="font-size:13px;margin-bottom:9px"><b>${f.n_trials}</b> trials · <b>${f.n_stopped_with_reason}</b> stopped with a stated reason</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">${status}</div>
-        ${reasons}
-      </div>
+async function loadTrials(efo){
+  try{
+    const f=await api('/api/failures?efo_id='+encodeURIComponent(efo));
+    const buckets=f.stop_reason_buckets||{}; const max=Math.max(1,...Object.values(buckets));
+    const status=Object.entries(f.by_status||{}).map(([k,v])=>
+      `<span class="pill ${/TERMINATED|WITHDRAWN/.test(k)?'r':/UNKNOWN|NO_LONGER/.test(k)?'w':'n'}">${esc(k.toLowerCase())} ${v}</span>`).join(' ');
+    const reasons=Object.entries(buckets).map(([k,v])=>
+      `<div class="evi"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${v/max*100}%;background:var(--oxygen)"></i></span><span>${v}</span></div>`).join('');
+    const ex=(f.examples||[]).slice(0,10).map(e=>
+      `<tr><td class="sym">${esc(e.nct_id)}</td><td class="num">${esc(e.phase||'—')}</td><td class="wide">${esc(e.reason||'')}</td></tr>`).join('');
+    $('#trials').innerHTML=`<div class="card" style="margin-bottom:16px">
+      <div style="font-size:13px;margin-bottom:9px"><b>${f.n_trials}</b> trials · <b>${f.n_stopped_with_reason}</b> stopped with a stated reason</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">${status}</div>${reasons}</div>
       <div class="tw"><table><thead><tr><th>NCT</th><th>phase</th><th>stated reason</th></tr></thead><tbody>${ex}</tbody></table></div>`;
-  } catch (e) { $('#trials').innerHTML = `<div class="note">${esc(e.message)}</div>`; }
+  }catch(e){ $('#trials').innerHTML=`<div class="note">${esc(e.message)}</div>`; }
 }
 
-// ---------- dossier drawer ----------
-async function openDossier(symbol) {
-  if (!symbol) return;
-  $('#scrim').classList.add('on'); $('#drawer').classList.add('on');
-  $('#drawerBody').innerHTML = `<h2>${esc(symbol)}</h2><div class="note"><span class="spin"></span> building dossier…</div>`;
-  const sel = $('#disease').selectedOptions[0];
-  const dName = sel ? sel.textContent.replace(/\s*\(\d+\)$/, '') : '';
-  try {
-    const d = await api(`/api/dossier?symbol=${encodeURIComponent(symbol)}&disease=${encodeURIComponent(dName)}`);
-    const p = d.profile, ch = d.chemistry || {}, cl = d.clinical || {}, a = d.assessment || {};
-    const pot = ch.potency || {};
-    const fd = d.focus_disease || {};
-    const dts = fd.datatype_scores || {};
-    const evi = Object.entries(dts).sort((x, y) => y[1] - x[1]).map(([k, v]) =>
-      `<div class="evi"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${v * 100}%"></i></span><span>${num(v, 3)}</span></div>`).join('');
-    const mods = (p.tractability || []).reduce((m, t) => { (m[t.modality] ||= []).push(t.label); return m; }, {});
-    const probes = (p.chemical_probes || []).filter(x => x.high_quality);
-    const tops = (ch.top_compounds || []).slice(0, 6).map(c =>
-      `<tr><td class="sym">${esc(c.chembl_id)}</td><td class="num">${num(c.best_pchembl)}</td><td class="num">${num(c.max_phase,0)}</td><td class="wide" style="font-family:var(--mono);font-size:11px">${esc((c.pref_name || c.smiles || '').slice(0, 34))}</td></tr>`).join('');
+// ---------- cures ----------
+async function loadCures(efo){
+  try{
+    const j=await api('/api/cures?efo_id='+encodeURIComponent(efo));
+    STATE.cures=j.cures; renderCures();
+  }catch(e){ $('#cures').innerHTML=`<div class="note">${esc(e.message)}</div>`; }
+}
 
-    $('#drawerBody').innerHTML = `
-      <h2>${esc(d.symbol)}</h2>
-      <div class="sub">${esc(p.name || '')}</div>
-      <div class="card" style="margin:14px 0"><b style="font-size:13px">${esc(a.verdict || '')}</b>
-        <ul style="margin-top:9px">
-          ${(a.strengths || []).map(s => `<li class="plus">${esc(s)}</li>`).join('')}
-          ${(a.risks || []).map(s => `<li class="minus">${esc(s)}</li>`).join('')}
-        </ul>
-      </div>
-      ${evi ? `<h3 style="font-size:13px;margin-top:18px">Evidence for ${esc(fd.name || '')} · ${num(fd.score, 3)}</h3>${evi}` : ''}
+function renderCures(){
+  let rows=STATE.cures.slice();
+  const q=$('#cureFilter').value.trim().toLowerCase();
+  if(q) rows=rows.filter(c=>[c.pref_name,c.symbol,c.mechanism_of_action,c.chembl_id]
+        .some(v=>String(v||'').toLowerCase().includes(q)));
+  const by=$('#cureSort').value;
+  const cmp={
+    phase:(a,b)=>(b.max_phase||0)-(a.max_phase||0),
+    name:(a,b)=>String(a.pref_name||a.chembl_id).localeCompare(String(b.pref_name||b.chembl_id)),
+    target:(a,b)=>String(a.symbol).localeCompare(String(b.symbol)),
+    potency:(a,b)=>(b.best_pchembl||0)-(a.best_pchembl||0),
+    mw:(a,b)=>(a.molecular_weight||0)-(b.molecular_weight||0),
+  }[by];
+  rows.sort(cmp);
+
+  if(!rows.length){ $('#cures').innerHTML='<div class="note">No curated medicines found for this disease yet.</div>'; return; }
+  const wrap=el('div','cards');
+  rows.slice(0,60).forEach(c=>{
+    const card=el('div','cure');
+    const phase=c.max_phase||0;
+    card.innerHTML=`<div class="mol" data-smiles="${esc(c.smiles)}"></div>
+      <div class="body">
+        <div class="nm">${esc(c.pref_name||c.chembl_id)}</div>
+        <div class="row">
+          <span class="tag t">${esc(c.symbol)}</span>
+          <span class="pill ${phase>=4?'y':phase>0?'w':'n'}">${phase>=4?'approved':phase>0?'phase '+phase:'preclinical'}</span>
+          ${c.best_pchembl?`<span class="tag">pX ${num(c.best_pchembl)}</span>`:''}
+          ${c.molecular_weight?`<span class="tag">MW ${num(c.molecular_weight,0)}</span>`:''}
+        </div>
+        <div class="moa">${esc(c.mechanism_of_action||'')}</div>
+      </div>`;
+    card.onclick=()=>openCure(c);
+    wrap.appendChild(card);
+  });
+  $('#cures').innerHTML=''; $('#cures').appendChild(wrap);
+  wrap.querySelectorAll('.mol').forEach(n=>fillMol(n,n.dataset.smiles,360,200,false));
+}
+
+async function openCure(c){
+  openDrawer();
+  $('#drawerBody').innerHTML=`<h2>${esc(c.pref_name||c.chembl_id)}</h2>
+    <div class="sub">${esc(c.action_type||'')} of ${esc(c.symbol)} — ${esc(c.target_name||'')}</div>
+    <div class="mol" id="dmol" style="margin:14px 0"></div>
+    <dl class="kv">
+      <dt>ChEMBL</dt><dd>${esc(c.chembl_id)}</dd>
+      <dt>mechanism</dt><dd>${esc(c.mechanism_of_action||'—')}</dd>
+      <dt>max phase</dt><dd>${c.max_phase>=4?'approved':num(c.max_phase,0)}</dd>
+      <dt>potency</dt><dd>${c.best_pchembl?`pChEMBL ${num(c.best_pchembl)} (${(Math.pow(10,-c.best_pchembl)*1e9).toFixed(1)} nM)`:'not measured against this target in the graph'}</dd>
+      <dt>MW / logP</dt><dd>${num(c.molecular_weight,0)} / ${num(c.alogp)}</dd>
+      <dt>Ro5 violations</dt><dd>${c.ro5_violations ?? '—'}</dd>
+      <dt>target assoc</dt><dd>${num(c.assoc,3)}</dd>
+      <dt>SMILES</dt><dd style="font-family:var(--mono);font-size:10.5px;word-break:break-all">${esc(c.smiles)}</dd>
+    </dl>`;
+  fillMol($('#dmol'), c.smiles, 640, 380, true);
+}
+
+// ---------- disease search ----------
+async function searchDiseases(){
+  const q=$('#dq').value.trim(); if(!q) return;
+  $('#dResults').innerHTML='<div class="note"><span class="spin"></span> searching…</div>';
+  try{
+    const j=await api('/api/search_diseases?q='+encodeURIComponent(q));
+    if(!j.matches.length){ $('#dResults').innerHTML='<div class="note">No match.</div>'; return; }
+    const tbl=el('table');
+    tbl.innerHTML=`<thead><tr><th>disease</th><th>ontology id</th><th>in graph</th><th></th></tr></thead><tbody>${
+      j.matches.map((m,i)=>`<tr data-i="${i}">
+        <td>${esc(m.name)}</td>
+        <td class="sym">${esc(m.efo_id)}</td>
+        <td>${m.in_graph?`<span class="pill y">${m.n_targets} targets</span>`:'<span class="pill n">not yet</span>'}</td>
+        <td><button class="primary" data-go="${i}">${m.in_graph?'Open':'Ingest + run'}</button></td>
+      </tr>`).join('')}</tbody>`;
+    const w=el('div','tw'); w.appendChild(tbl);
+    $('#dResults').innerHTML=''; $('#dResults').appendChild(w);
+    tbl.querySelectorAll('button[data-go]').forEach(b=>{
+      b.onclick=async ev=>{
+        ev.stopPropagation();
+        const m=j.matches[+b.dataset.go];
+        if(m.in_graph){ $('#disease').value=m.efo_id; await loadDisease(); go('pipeline'); }
+        else { go('pipeline'); runPipeline(m.name); }
+      };
+    });
+  }catch(e){ $('#dResults').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+}
+
+// ---------- pipeline showcase ----------
+const STAGE_TITLES = {
+  ingest:'Ingest', resolve:'Resolve', rank:'Rank targets', target:'Select target',
+  candidates:'Gather chemistry', model:'Train model', score:'Score candidates', select:'Pick winner'
+};
+
+async function runPipeline(diseaseOverride){
+  const name = diseaseOverride || STATE.name;
+  if(!name){ banner('Pick or search a disease first.'); return; }
+  const btn=$('#btnPipeline'); btn.disabled=true;
+  go('pipeline');
+  const out=$('#pipeOut');
+  out.innerHTML='';
+  const head=el('div','sub',`Running the full pipeline on <b>${esc(name)}</b>. First run on a new disease ingests from four public APIs and trains a model — this takes a few minutes.`);
+  const log=el('pre','log','starting…');
+  out.appendChild(head); out.appendChild(log);
+  try{
+    const res=await runJob('/api/showcase',{disease:name,strategy:$('#strategy').value},log);
+    STATE.pipeline=res;
+    await renderPipeline(res, out, log);
+    await loadStats(); await loadDisease();
+  }catch(e){ out.innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+  finally{ btn.disabled=false; }
+}
+
+async function renderPipeline(res, out, log){
+  out.innerHTML='';
+  out.appendChild(el('div','sub',`<b>${esc(res.disease)}</b> · strategy <b>${esc(res.strategy)}</b> · ${res.stages.length} stages`));
+
+  // stages, revealed one at a time
+  const stages=el('div','stages');
+  out.appendChild(stages);
+  const nodes=[];
+  for(let i=0;i<res.stages.length;i++){
+    const s=res.stages[i];
+    const node=el('div','stage');
+    node.innerHTML=`<div class="n">${String(i+1).padStart(2,'0')}</div>
+      <div><div class="t">${esc(s.title)}</div><div class="d">${esc(s.detail)}</div></div>`;
+    stages.appendChild(node);
+    nodes.push(node);
+  }
+  // Reveal on a timer rather than a CSS keyframe. A keyframe that owns
+  // visibility leaves the content invisible if it is ever throttled -- which
+  // browsers do to background tabs -- so the class is what makes it visible
+  // and the animation only decorates the transition.
+  nodes.forEach((n,i)=>setTimeout(()=>n.classList.add('in'), 60+i*150));
+  await sleep(res.stages.length*150+300);
+  nodes.forEach(n=>n.classList.add('in'));   // belt and braces
+
+  const best=res.best, t=res.target;
+  if(!best){ out.appendChild(el('div','note','No candidate with a usable structure was found.')); return; }
+
+  // hero: molecule + scorecard
+  const hero=el('div','hero');
+  hero.innerHTML=`
+    <div>
+      <div class="mol" id="heroMol"></div>
+      <div class="sub" style="margin-top:9px;font-family:var(--mono);font-size:10.5px;word-break:break-all">${esc(best.smiles||'')}</div>
+    </div>
+    <div>
+      <h2>${esc(best.pref_name||best.chembl_id)}</h2>
+      <div class="sub" style="margin-top:4px">Best-supported candidate against <b>${esc(t.symbol)}</b> for ${esc(res.disease)}</div>
+      <div class="overall"><b id="ovVal">0</b><span style="color:var(--muted)">% overall — weighted across the six categories below</span></div>
+      <div class="gauges" id="gauges"></div>
+    </div>`;
+  out.appendChild(hero);
+  fillMol($('#heroMol'), best.smiles, 560, 360, true);
+
+  const GAUGES=[
+    ['potency','Potency','measured pChEMBL against this target'],
+    ['druglikeness','Druglikeness','Lipinski violations, size, logP'],
+    ['target_evidence','Target evidence','Open Targets association score'],
+    ['safety','Safety','essentiality, genetic constraint, liabilities'],
+    ['selectivity','Selectivity','inverse of how many diseases the target touches'],
+    ['clinical_precedent','Clinical precedent','highest phase reached'],
+  ];
+  const gw=$('#gauges');
+  GAUGES.forEach(([k,label,help])=>{
+    const v=best.scores[k]??0;
+    const cls=v>=66?'g-hi':v>=33?'g-md':'g-lo';
+    const g=el('div',`gauge ${cls}`);
+    g.title=help;
+    g.innerHTML=`<div class="lab">${esc(label)}</div><div class="val">${v}%</div><div class="track"><i data-w="${v}"></i></div>`;
+    gw.appendChild(g);
+  });
+  // Same reasoning: fill the bars on a timeout, and never leave them at zero.
+  setTimeout(()=>gw.querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%'), 60);
+  countUp($('#ovVal'), best.scores.overall);
+
+  if((res.caveats||[]).length){
+    const c=el('div','err');
+    c.style.marginTop='14px';
+    c.innerHTML='<b>Read before using these numbers</b><br>'+res.caveats.map(esc).join('<br><br>');
+    out.appendChild(c);
+  }
+  if(best.action_type){
+    out.appendChild(el('div','sub',
+      `<b>Mechanism:</b> ${esc(best.pref_name||best.chembl_id)} is an <b>${esc(best.action_type.toLowerCase())}</b> of ${esc(t.symbol)}${best.mechanism_of_action?` — ${esc(best.mechanism_of_action)}`:''}.`));
+  }
+  if((best.scores.safety_notes||[]).length){
+    out.appendChild(el('div','sub',
+      `<span style="color:var(--oxygen)">Safety deductions:</span> ${best.scores.safety_notes.map(esc).join(' · ')}`));
+  }
+
+  // why it works
+  try{
+    const ex=await api('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({target:t,candidate:best})});
+    const why=el('div','why');
+    why.innerHTML=`<h2 class="sec" style="margin-top:20px">Why it works</h2>`+
+      ex.sections.map(s=>`<section><h4>${esc(s.heading)}</h4><p>${esc(s.body)}</p><div class="src">source: ${esc(s.source)}</div></section>`).join('');
+    out.appendChild(why);
+
+    // What the molecule is actually made of, piece by piece.
+    if((ex.groups||[]).length){
+      const lip=ex.lipinski||{};
+      const g=el('div');
+      g.innerHTML=`<h2 class="sec" style="margin-top:20px">What it is made of</h2>
+        <div class="sub">Functional groups detected from the structure. Each one changes how the molecule behaves in the body.
+          ${lip.verdict?`<br><b>Lipinski:</b> ${esc(lip.verdict)} — MW ${lip.mw}, clogP ${lip.clogp}, HBD ${lip.hbd}, HBA ${lip.hba}${(lip.violations||[]).length?' · violations: '+lip.violations.map(esc).join(', '):''}`:''}</div>
+        <div class="cards">${ex.groups.map(gr=>`
+          <div class="card" style="cursor:pointer" data-atoms="${esc((gr.atoms||[]).join(','))}">
+            <h3 style="color:${gr.kind==='warhead'?'var(--oxygen)':gr.kind==='liability'?'var(--warn)':'var(--nitrogen)'}">${esc(gr.name)}</h3>
+            <div class="sub" style="margin:6px 0 0;font-style:italic">${esc(gr.why)}</div>
+          </div>`).join('')}</div>`;
+      out.appendChild(g);
+
+      // Clicking a group redraws the molecule with those atoms highlighted.
+      g.querySelectorAll('.card[data-atoms]').forEach(card=>{
+        card.onclick=async()=>{
+          const atoms=card.dataset.atoms;
+          g.querySelectorAll('.card').forEach(c=>c.style.borderColor='var(--rule)');
+          card.style.borderColor='var(--oxygen)';
+          const node=$('#heroMol');
+          node.innerHTML='<div class="note"><span class="spin"></span></div>';
+          try{
+            const j=await api(`/api/depict?smiles=${encodeURIComponent(best.smiles)}&w=560&h=360&highlight=${encodeURIComponent(atoms)}`);
+            node.innerHTML=j.svg||'';
+          }catch(e){ node.innerHTML=`<div class="note">${esc(e.message)}</div>`; }
+        };
+      });
+    }
+  }catch(e){ /* explanation is a bonus, not the result */ }
+
+  // model card
+  if(res.model){
+    const m=res.model.metrics;
+    out.appendChild(el('div','card',
+      `<h3>qc_model — trained during this run</h3>
+       <div class="sub" style="margin:6px 0 0">Trained on ${res.model.n_train} compounds, tested on ${m.n} scaffolds it had never seen.</div>
+       <div class="comps" style="margin-top:9px">
+         <span class="comp">R² <b>${num(m.r2,3)}</b></span>
+         <span class="comp">RMSE <b>${num(m.rmse,3)}</b></span>
+         <span class="comp">Spearman <b>${num(m.spearman,3)}</b></span>
+       </div>
+       <div class="sub" style="margin:9px 0 0">Scaffold split, so this is what it does on new chemistry — not the inflated random-split number.</div>`));
+  }
+
+  // ranked candidates
+  const tbl=el('table');
+  tbl.innerHTML=`<thead><tr><th>candidate</th><th>overall</th><th>potency</th>${res.model?'<th>predicted pX</th>':''}<th>measured pX</th><th>direction</th><th>phase</th><th>MW</th></tr></thead>
+    <tbody>${res.candidates.slice(0,12).map(c=>`<tr data-id="${esc(c.chembl_id)}">
+      <td class="sym">${esc((c.pref_name||c.chembl_id).slice(0,26))}</td>
+      <td class="num">${c.scores.overall}%</td>
+      <td class="num">${c.scores.potency}%</td>
+      ${res.model?`<td class="num">${num(c.predicted_pchembl)}</td>`:''}
+      <td class="num">${num(c.best_pchembl)}</td>
+      <td>${c.action_type?`<span class="tag">${esc(c.action_type.toLowerCase())}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="num">${num(c.max_phase,0)}</td>
+      <td class="num">${num(c.molecular_weight,0)}</td></tr>`).join('')}</tbody>`;
+  const tw=el('div','tw');
+  tw.appendChild(tbl);
+  out.appendChild(el('h2','sec','Ranked candidates'));
+  out.appendChild(el('div','sub',res.model
+    ? 'Predicted pX comes from the model trained above — it scores compounds the model never saw measured against this target.'
+    : 'No model was trained: too little measured data on this target.'));
+  out.appendChild(tw);
+  tbl.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.onclick=()=>{ const c=res.candidates.find(x=>x.chembl_id===tr.dataset.id); if(c) openCandidate(c,res); };
+  });
+}
+
+async function openCandidate(c,res){
+  openDrawer();
+  $('#drawerBody').innerHTML=`<h2>${esc(c.pref_name||c.chembl_id)}</h2>
+    <div class="sub">candidate against ${esc(res.target.symbol)}</div>
+    <div class="mol" id="cmol" style="margin:14px 0"></div>
+    <div class="gauges">${['potency','druglikeness','target_evidence','safety','selectivity','clinical_precedent']
+      .map(k=>{const v=c.scores[k]??0;const cls=v>=66?'g-hi':v>=33?'g-md':'g-lo';
+        return `<div class="gauge ${cls}"><div class="lab">${esc(k.replace(/_/g,' '))}</div><div class="val">${v}%</div><div class="track"><i style="width:${v}%"></i></div></div>`;}).join('')}</div>
+    <dl class="kv">
+      <dt>measured pX</dt><dd>${num(c.best_pchembl)}</dd>
+      ${c.predicted_pchembl!==undefined?`<dt>predicted pX</dt><dd>${num(c.predicted_pchembl)} <span style="color:var(--muted)">(qc_model)</span></dd>`:''}
+      <dt>max phase</dt><dd>${num(c.max_phase,0)}</dd>
+      <dt>MW / logP</dt><dd>${num(c.molecular_weight,0)} / ${num(c.alogp)}</dd>
+      <dt>SMILES</dt><dd style="font-family:var(--mono);font-size:10.5px;word-break:break-all">${esc(c.smiles||'')}</dd>
+    </dl>`;
+  if(c.smiles) fillMol($('#cmol'), c.smiles, 640, 380, true);
+}
+
+function countUp(node,target){
+  const t=+target||0; let cur=0, done=false;
+  const step=()=>{
+    if(done) return;
+    cur+=Math.max(1,t/28);
+    if(cur>=t){ done=true; node.textContent=t; return; }
+    node.textContent=Math.round(cur);
+    requestAnimationFrame(step);
+  };
+  step();
+  // requestAnimationFrame is throttled while the tab is hidden. Land on the
+  // real number regardless -- and set `done` first, or the loop resumes and
+  // overwrites the value we just corrected.
+  setTimeout(()=>{ done=true; node.textContent=t; }, 1500);
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ---------- dossier ----------
+function openDrawer(){ $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); }
+function closeDrawer(){ $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); }
+
+async function openDossier(symbol){
+  if(!symbol) return;
+  openDrawer();
+  $('#drawerBody').innerHTML=`<h2>${esc(symbol)}</h2><div class="note"><span class="spin"></span> building dossier…</div>`;
+  try{
+    const d=await api(`/api/dossier?symbol=${encodeURIComponent(symbol)}&disease=${encodeURIComponent(STATE.name)}`);
+    const p=d.profile,ch=d.chemistry||{},cl=d.clinical||{},a=d.assessment||{};
+    const pot=ch.potency||{}, fd=d.focus_disease||{}, dts=fd.datatype_scores||{};
+    const evi=Object.entries(dts).sort((x,y)=>y[1]-x[1]).map(([k,v])=>
+      `<div class="evi"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${v*100}%"></i></span><span>${num(v,3)}</span></div>`).join('');
+    const probes=(p.chemical_probes||[]).filter(x=>x.high_quality);
+    const tops=(ch.top_compounds||[]).slice(0,5);
+    $('#drawerBody').innerHTML=`<h2>${esc(d.symbol)}</h2><div class="sub">${esc(p.name||'')}</div>
+      <div class="card" style="margin:14px 0"><b style="font-size:13px">${esc(a.verdict||'')}</b>
+      <ul style="margin-top:9px">${(a.strengths||[]).map(s=>`<li class="plus">${esc(s)}</li>`).join('')}${(a.risks||[]).map(s=>`<li class="minus">${esc(s)}</li>`).join('')}</ul></div>
+      ${evi?`<h3 style="font-size:13px;margin-top:18px">Evidence for ${esc(fd.name||'')} · ${num(fd.score,3)}</h3>${evi}`:''}
       <h3 style="font-size:13px;margin-top:18px">Safety</h3>
       <dl class="kv">
-        <dt>pan-essential</dt><dd>${p.is_essential ? '<span class="pill r">yes — knockout is lethal in cell lines</span>' : '<span class="pill y">no</span>'}</dd>
-        <dt>LOEUF bin</dt><dd>${p.loeuf_bin === 0 ? '<span class="pill r">0 — most constrained decile</span>' : esc(p.loeuf_bin ?? '—')}</dd>
-        <dt>liabilities</dt><dd>${(p.safety_liabilities || []).length || 'none recorded'}</dd>
-        <dt>pleiotropy</dt><dd>${p.n_associated_diseases ?? '—'} associated diseases</dd>
-      </dl>
-      <h3 style="font-size:13px;margin-top:18px">Tractability</h3>
-      <dl class="kv">
-        ${Object.entries(mods).map(([m, l]) => `<dt>${esc({SM:'small molecule',AB:'antibody',PR:'PROTAC',OC:'other clinical'}[m] || m)}</dt><dd>${esc(l.slice(0,3).join(', '))}</dd>`).join('') || '<dt>—</dt><dd>no modality evidence</dd>'}
-        <dt>probes</dt><dd>${probes.length ? esc(probes.map(x => x.id).join(', ')) : 'none high quality'}</dd>
+        <dt>pan-essential</dt><dd>${p.is_essential?'<span class="pill r">yes — knockout is lethal in cell lines</span>':'<span class="pill y">no</span>'}</dd>
+        <dt>LOEUF bin</dt><dd>${p.loeuf_bin===0?'<span class="pill r">0 — most constrained decile</span>':esc(p.loeuf_bin??'—')}</dd>
+        <dt>liabilities</dt><dd>${(p.safety_liabilities||[]).length||'none recorded'}</dd>
+        <dt>pleiotropy</dt><dd>${p.n_associated_diseases??'—'} associated diseases</dd>
+        <dt>probes</dt><dd>${probes.length?esc(probes.map(x=>x.id).join(', ')):'none high quality'}</dd>
       </dl>
       <h3 style="font-size:13px;margin-top:18px">Chemical matter</h3>
       <dl class="kv">
-        <dt>compounds</dt><dd>${ch.n_compounds ?? 0}</dd>
+        <dt>compounds</dt><dd>${ch.n_compounds??0}</dd>
         <dt>best / median pX</dt><dd>${num(pot.best)} / ${num(pot.median)}</dd>
-        <dt>potent (≥7)</dt><dd>${pot.n_potent ?? 0}</dd>
-        <dt>clinical drugs</dt><dd>${cl.n_drugs ?? 0} (approved ${cl.n_approved ?? 0}, max phase ${num(cl.max_phase, 0)})</dd>
+        <dt>clinical drugs</dt><dd>${cl.n_drugs??0} (approved ${cl.n_approved??0})</dd>
       </dl>
-      ${tops ? `<div class="tw" style="margin-top:10px"><table><thead><tr><th>chembl</th><th>pX</th><th>phase</th><th>name / smiles</th></tr></thead><tbody>${tops}</tbody></table></div>` : ''}`;
-  } catch (e) {
-    $('#drawerBody').innerHTML = `<h2>${esc(symbol)}</h2><div class="err">${esc(e.message)}</div>`;
-  }
-}
-function closeDrawer() { $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); }
-
-// ---------- jobs ----------
-async function runJob(path, body, logEl, onDone) {
-  const job = await api(path, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  });
-  logEl.textContent = 'starting…';
-  return new Promise((resolve, reject) => {
-    const tick = async () => {
-      try {
-        const j = await api('/api/job?id=' + job.id);
-        logEl.textContent = (j.progress || []).join('\n') || 'working…';
-        logEl.scrollTop = logEl.scrollHeight;
-        if (j.status === 'running') return setTimeout(tick, 900);
-        if (j.status === 'error') { logEl.textContent += '\n\n' + j.error; return reject(new Error(j.error)); }
-        onDone && onDone(j.result); resolve(j.result);
-      } catch (e) { reject(e); }
-    };
-    setTimeout(tick, 600);
-  });
-}
-
-function renderShortlist(res) {
-  const cards = res.shortlist.map(s => `
-    <div class="card">
-      <span class="rank">#${s.rank} · ${num(s.score, 3)}</span>
-      <h3>${esc(s.symbol)}</h3>
-      <div style="font-size:11px;color:var(--muted)">${esc((s.name || '').slice(0, 44))}</div>
-      <div class="verdict">${esc(s.verdict || '')}</div>
-      <div class="comps">${Object.entries(s.components || {}).map(([k, v]) => `<span class="comp">${esc(k.slice(0,5))} <b>${num(v, 2)}</b></span>`).join('')}</div>
-      <ul>${(s.strengths || []).map(x => `<li class="plus">${esc(x)}</li>`).join('')}${(s.risks || []).map(x => `<li class="minus">${esc(x)}</li>`).join('')}</ul>
-    </div>`).join('');
-  const moved = (res.movement || []).map(m =>
-    `<li>${esc(m.symbol)}: rank ${m.from_rank} → ${m.to_rank} <span style="color:var(--muted)">(${esc(m.reason)})</span></li>`).join('');
-  $('#shortlist').innerHTML = `
-    <div class="sub">${esc(res.disease)} · strategy <b>${esc(res.strategy)}</b> · ${res.n_surveyed} targets surveyed</div>
-    ${moved ? `<div class="card" style="margin-bottom:14px"><b style="font-size:13px">What changed after the deep dive</b><ul style="margin-top:7px">${moved}</ul></div>` : ''}
-    <div class="cards">${cards}</div>
-    ${(res.next_actions || []).length ? `<h2 class="sec">Next actions</h2><div class="card"><ul>${res.next_actions.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>` : ''}`;
-  res.shortlist.forEach(s => { });
-  document.querySelectorAll('#shortlist .card h3').forEach(h => {
-    h.style.cursor = 'pointer';
-    h.onclick = () => openDossier(h.textContent.trim());
-  });
+      ${tops.length?`<div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-top:10px">${
+        tops.map(c=>`<div><div class="mol" data-smiles="${esc(c.smiles||'')}"></div>
+          <div style="font-size:11px;margin-top:5px;font-family:var(--mono)">${esc(c.chembl_id)} · pX ${num(c.best_pchembl)}</div></div>`).join('')}</div>`:''}`;
+    $('#drawerBody').querySelectorAll('.mol[data-smiles]').forEach(n=>{
+      if(n.dataset.smiles) fillMol(n,n.dataset.smiles,200,150,false);
+    });
+  }catch(e){ $('#drawerBody').innerHTML=`<h2>${esc(symbol)}</h2><div class="err">${esc(e.message)}</div>`; }
 }
 
 // ---------- wiring ----------
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.tab));
-});
-$('#disease').onchange = loadDisease;
-$('#scrim').onclick = closeDrawer;
-$('#closeDrawer').onclick = closeDrawer;
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+function go(tab){
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+tab));
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+$('#disease').onchange=loadDisease;
+$('#scrim').onclick=closeDrawer;
+$('#closeDrawer').onclick=closeDrawer;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+$('#btnPipeline').onclick=()=>runPipeline();
+$('#btnSearch').onclick=searchDiseases;
+$('#dq').addEventListener('keydown',e=>{ if(e.key==='Enter') searchDiseases(); });
+$('#cureSort').onchange=renderCures;
+$('#cureFilter').oninput=renderCures;
 
-$('#btnIngest').onclick = async () => {
-  const name = $('#newDisease').value.trim();
-  if (!name) return banner('Type a disease name first.');
-  const btn = $('#btnIngest'); btn.disabled = true;
-  banner('');
-  const log = el('pre', 'log', 'starting…');
-  $('#banner').innerHTML = ''; $('#banner').appendChild(log);
-  try {
-    await runJob('/api/ingest', { disease: name, n_targets: 20 }, log);
-    $('#newDisease').value = '';
-    await loadStats(); await loadDisease();
-    $('#banner').innerHTML = '';
-  } catch (e) { banner(e.message); }
-  finally { btn.disabled = false; }
-};
-
-$('#btnInvestigate').onclick = async () => {
-  const sel = $('#disease').selectedOptions[0];
-  const name = $('#newDisease').value.trim() || (sel ? sel.textContent.replace(/\s*\(\d+\)$/, '') : '');
-  if (!name) return banner('Pick or type a disease first.');
-  document.querySelector('nav button[data-tab=shortlist]').click();
-  const btn = $('#btnInvestigate'); btn.disabled = true;
-  const log = el('pre', 'log', 'starting…');
-  $('#shortlist').innerHTML = ''; $('#shortlist').appendChild(log);
-  try {
-    const res = await runJob('/api/investigate', { disease: name, strategy: $('#strategy').value, top_n: 6 }, log);
-    renderShortlist(res);
-    await loadStats();
-  } catch (e) { $('#shortlist').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
-  finally { btn.disabled = false; }
-};
-
-const SUGGESTIONS = [
+const SUGGESTIONS=[
   'Which undrugged target here is the best bet, and what would kill it?',
-  'Why do trials fail in this indication, and what should a new programme avoid?',
-  'Compare KRAS and SMAD4 as targets. Which is the better place to start?',
+  'Why do trials fail in this indication?',
+  'Compare the top two targets. Which is the better place to start?',
   'How many qubits would H2O need, and is that worth running?',
 ];
-$('#chips').innerHTML = SUGGESTIONS.map(s => `<span class="chip">${esc(s)}</span>`).join('');
-$('#chips').onclick = e => { if (e.target.classList.contains('chip')) { $('#q').value = e.target.textContent; $('#btnAsk').click(); } };
-
-$('#btnAsk').onclick = async () => {
-  const q = $('#q').value.trim();
-  if (!q) return;
-  const sel = $('#disease').selectedOptions[0];
-  const ctx = sel ? ` (indication of interest: ${sel.textContent.replace(/\s*\(\d+\)$/, '')})` : '';
-  const btn = $('#btnAsk'); btn.disabled = true;
-  const log = el('pre', 'log', 'starting…');
-  $('#askout').innerHTML = ''; $('#askout').appendChild(log);
-  try {
-    const res = await runJob('/api/ask', { question: q + ctx }, log);
-    const used = Object.entries(res.tools_used || {}).map(([k, v]) => `${k}×${v}`).join(', ');
-    $('#askout').innerHTML = `<div class="answer">${esc(res.answer)}</div>
-      <div class="sub" style="margin-top:9px">${res.n_tool_calls} tool calls · ${esc(used)}</div>`;
-  } catch (e) {
-    $('#askout').innerHTML = `<div class="err">${esc(e.message)}</div>
-      <div class="sub">The agent needs <code>ANTHROPIC_API_KEY</code> set in the shell that started the server. Everything else on this page works without it.</div>`;
-  } finally { btn.disabled = false; }
+$('#chips').innerHTML=SUGGESTIONS.map(s=>`<span class="chip">${esc(s)}</span>`).join('');
+$('#chips').onclick=e=>{ if(e.target.classList.contains('chip')){ $('#q').value=e.target.textContent; $('#btnAsk').click(); } };
+$('#btnAsk').onclick=async()=>{
+  const q=$('#q').value.trim(); if(!q) return;
+  const btn=$('#btnAsk'); btn.disabled=true;
+  const log=el('pre','log','starting…');
+  $('#askout').innerHTML=''; $('#askout').appendChild(log);
+  try{
+    const res=await runJob('/api/ask',{question:q+(STATE.name?` (indication of interest: ${STATE.name})`:'')},log);
+    const used=Object.entries(res.tools_used||{}).map(([k,v])=>`${k}×${v}`).join(', ');
+    $('#askout').innerHTML=`<div class="answer">${esc(res.answer)}</div><div class="sub" style="margin-top:9px">${res.n_tool_calls} tool calls · ${esc(used)}</div>`;
+  }catch(e){
+    $('#askout').innerHTML=`<div class="err">${esc(e.message)}</div><div class="sub">The agent needs <code>ANTHROPIC_API_KEY</code> in the shell that started the server. Every other view works without it.</div>`;
+  }finally{ btn.disabled=false; }
 };
-$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnAsk').click(); });
+$('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btnAsk').click(); });
 
-(async () => {
-  try { await loadStats(); await loadDisease(); }
-  catch (e) { banner(e.message); }
-})();
+(async()=>{ try{ await loadStats(); await loadDisease(); }catch(e){ banner(e.message); } })();
 </script>
 </body>
 </html>
