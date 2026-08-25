@@ -1,1 +1,41 @@
+# OS
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual envs
+.venv/
+venv/
+env/
+qiskit-modern/
+qc/qiskit-modern/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data + artifacts (regenerable, can get large)
+data/
+!data/.gitkeep
+*.duckdb
+*.duckdb.wal
+*.sqlite
+runs/
+results/
+*.log
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
