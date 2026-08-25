@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QC Research</title>
+<style>
+/* Palette from CPK molecular colouring: carbon ink, oxygen accent, nitrogen secondary. */
+:root {
+  --paper:#F4F6F8; --surface:#FFF; --sunken:#EAEDF1; --ink:#171A1D; --ink-soft:#3B424B;
+  --muted:#69717E; --rule:#DDE2E8; --firm:#C4CBD4;
+  --oxygen:#C0341F; --nitrogen:#2B55C4; --good:#1F7A4D; --warn:#9A6608;
+  --mono:"SF Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --paper:#0F1216; --surface:#161A20; --sunken:#1C2128; --ink:#E6E9ED; --ink-soft:#BFC6CF;
+  --muted:#8B94A1; --rule:#262D36; --firm:#39424E;
+  --oxygen:#F2634A; --nitrogen:#7C9BF0; --good:#4FBF87; --warn:#D6A83C;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;line-height:1.2}
+
+/* ---- shell ---- */
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20}
+.brand{font-weight:700;letter-spacing:-.02em;font-size:16px;white-space:nowrap}
+.brand span{color:var(--oxygen)}
+.grow{flex:1}
+.counts{display:flex;gap:14px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.counts b{color:var(--ink);font-weight:600}
+
+/* ---- controls ---- */
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--rule);background:var(--surface)}
+select,input[type=text]{padding:6px 10px;border:1px solid var(--firm);border-radius:5px;background:var(--paper);min-width:150px}
+input[type=text]{min-width:280px}
+button{padding:6px 13px;border:1px solid var(--firm);border-radius:5px;background:var(--paper);cursor:pointer;font-weight:500}
+button:hover:not(:disabled){border-color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--oxygen);border-color:var(--oxygen);color:#fff}
+button.primary:hover:not(:disabled){filter:brightness(1.08)}
+:focus-visible{outline:2px solid var(--nitrogen);outline-offset:2px}
+
+nav{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--rule);background:var(--surface);overflow-x:auto}
+nav button{border:none;border-bottom:2px solid transparent;border-radius:0;background:none;padding:9px 14px;color:var(--muted);white-space:nowrap}
+nav button.on{color:var(--ink);border-bottom-color:var(--oxygen);font-weight:600}
+
+main{padding:20px;max-width:1500px}
+.panel{display:none}.panel.on{display:block}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:7px 11px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--sunken);position:sticky;top:0;cursor:pointer;user-select:none}
+th:hover{color:var(--ink)}
+th.sorted::after{content:" ▾";color:var(--oxygen)}
+th.asc::after{content:" ▴";color:var(--oxygen)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--sunken)}
+td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.sym{font-family:var(--mono);font-weight:600;color:var(--nitrogen)}
+td.wide{white-space:normal;min-width:220px;color:var(--muted)}
+
+/* ---- bits ---- */
+.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600;font-family:var(--mono)}
+.pill.y{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.n{background:var(--sunken);color:var(--muted)}
+.pill.r{background:color-mix(in srgb,var(--oxygen) 16%,transparent);color:var(--oxygen)}
+.pill.w{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.bar-cell{display:flex;align-items:center;gap:7px}
+.meter{width:52px;height:5px;border-radius:3px;background:var(--sunken);overflow:hidden;flex:none}
+.meter i{display:block;height:100%;background:var(--nitrogen)}
+.note{color:var(--muted);padding:26px;text-align:center}
+.err{color:var(--oxygen);padding:14px;border:1px solid var(--oxygen);border-radius:6px;background:color-mix(in srgb,var(--oxygen) 7%,transparent);margin-bottom:14px;font-family:var(--mono);font-size:12px}
+h2.sec{font-size:15px;margin:22px 0 9px}
+h2.sec:first-child{margin-top:0}
+.sub{color:var(--muted);font-size:12px;margin-bottom:12px}
+
+/* ---- log ---- */
+.log{font-family:var(--mono);font-size:11.5px;background:var(--sunken);border:1px solid var(--rule);border-left:3px solid var(--nitrogen);border-radius:5px;padding:11px 13px;max-height:260px;overflow-y:auto;white-space:pre-wrap;color:var(--ink-soft)}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--firm);border-top-color:var(--oxygen);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* ---- cards ---- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:13px}
+.card{border:1px solid var(--rule);border-radius:7px;background:var(--surface);padding:14px}
+.card h3{font-size:14px;margin-bottom:3px;font-family:var(--mono);color:var(--nitrogen)}
+.card .verdict{font-size:12px;color:var(--ink-soft);margin:7px 0 10px;font-style:italic}
+.card ul{margin:0;padding-left:16px;font-size:12px;color:var(--ink-soft)}
+.card li{margin-bottom:3px}
+.card li.plus::marker{color:var(--good)}
+.card li.minus::marker{color:var(--oxygen)}
+.rank{float:right;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.comps{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0}
+.comp{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--sunken);color:var(--muted)}
+.comp b{color:var(--ink)}
+
+/* ---- drawer ---- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .18s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(660px,94vw);background:var(--surface);border-left:1px solid var(--rule);transform:translateX(100%);transition:transform .22s;z-index:41;overflow-y:auto;padding:20px}
+.drawer.on{transform:none}
+@media (prefers-reduced-motion:reduce){.scrim,.drawer{transition:none}}
+.drawer .x{position:absolute;top:14px;right:16px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:5px 12px;font-size:12.5px;margin:12px 0}
+.kv dt{color:var(--muted);font-family:var(--mono);font-size:11px}
+.kv dd{margin:0;color:var(--ink-soft)}
+.evi{display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0;font-family:var(--mono)}
+.evi .lbl{width:158px;flex:none;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evi .track{flex:1;height:6px;background:var(--sunken);border-radius:3px;overflow:hidden}
+.evi .track i{display:block;height:100%;background:var(--nitrogen)}
+
+/* ---- ask ---- */
+.answer{border:1px solid var(--rule);border-radius:7px;background:var(--surface);padding:16px;white-space:pre-wrap;line-height:1.62}
+.askrow{display:flex;gap:8px;margin-bottom:12px}
+.askrow input{flex:1;min-width:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{font-size:12px;padding:4px 10px;border:1px solid var(--rule);border-radius:99px;background:var(--surface);cursor:pointer;color:var(--muted)}
+.chip:hover{border-color:var(--nitrogen);color:var(--nitrogen)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">QC<span>·</span>Research</div>
+  <div class="counts" id="counts"></div>
+  <div class="grow"></div>
+  <div class="counts" id="dbname"></div>
+</header>
+
+<div class="bar">
+  <label for="disease" style="color:var(--muted);font-size:12px">Disease</label>
+  <select id="disease"></select>
+  <input type="text" id="newDisease" placeholder="add another — e.g. glioblastoma">
+  <button id="btnIngest">Add to graph</button>
+  <div class="grow"></div>
+  <select id="strategy" title="Ranking strategy">
+    <option value="balanced">balanced</option>
+    <option value="novel">novel — find unexploited</option>
+    <option value="fast">fast — existing chemistry</option>
+  </select>
+  <button class="primary" id="btnInvestigate">Investigate</button>
+</div>
+
+<nav>
+  <button data-tab="landscape" class="on">Landscape</button>
+  <button data-tab="gaps">Opportunity gaps</button>
+  <button data-tab="trials">Trial failures</button>
+  <button data-tab="shortlist">Shortlist</button>
+  <button data-tab="ask">Ask</button>
+</nav>
+
+<main>
+  <div id="banner"></div>
+
+  <section class="panel on" id="p-landscape">
+    <h2 class="sec">Target landscape</h2>
+    <div class="sub">Association score crossed with how much chemical matter exists. Click any row for the full dossier. Click a header to sort.</div>
+    <div class="tw"><table id="t-landscape"></table></div>
+  </section>
+
+  <section class="panel" id="p-gaps">
+    <h2 class="sec">Opportunity gaps</h2>
+    <div class="sub">Well evidenced <em>and</em> small-molecule tractable <em>and</em> no drug has ever reached the clinic.</div>
+    <div class="tw"><table id="t-gaps"></table></div>
+  </section>
+
+  <section class="panel" id="p-trials">
+    <h2 class="sec">Why trials stop here</h2>
+    <div class="sub">Bucketed from the free-text <code>whyStopped</code> field. Most models train only on successes; this is the other half.</div>
+    <div id="trials"></div>
+  </section>
+
+  <section class="panel" id="p-shortlist">
+    <h2 class="sec">Ranked shortlist</h2>
+    <div class="sub">Survey → deep dive → re-rank. Press <b>Investigate</b> above to run it.</div>
+    <div id="shortlist"><div class="note">No investigation run yet.</div></div>
+  </section>
+
+  <section class="panel" id="p-ask">
+    <h2 class="sec">Ask the agent</h2>
+    <div class="sub">Claude plans and interprets; the tools measure. It cannot state a number it did not read from a tool result.</div>
+    <div class="askrow">
+      <input type="text" id="q" placeholder="Which undrugged target here is the best bet, and what would kill it?">
+      <button class="primary" id="btnAsk">Ask</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="askout"></div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Target dossier"><button class="x" id="closeDrawer">Close</button><div id="drawerBody"></div></aside>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h !== undefined) n.innerHTML = h; return n; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = (v, d = 2) => (v === null || v === undefined || v === '' || Number.isNaN(+v)) ? '—' : (+v).toFixed(d);
+
+let STATE = { disease: null, landscape: [], gaps: [], sort: {} };
+
+function banner(msg, kind = 'err') {
+  $('#banner').innerHTML = msg ? `<div class="${kind}">${esc(msg)}</div>` : '';
+}
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(() => ({ error: 'bad JSON from server' }));
+  if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+// ---------- tables ----------
+function renderTable(tableEl, rows, cols, key) {
+  tableEl.innerHTML = '';
+  if (!rows.length) {
+    tableEl.innerHTML = `<tbody><tr><td class="note">Nothing here yet. Use <b>Add to graph</b> or <b>Investigate</b>.</td></tr></tbody>`;
+    return;
+  }
+  const s = STATE.sort[key] || {};
+  const thead = el('thead'); const tr = el('tr');
+  cols.forEach(c => {
+    const th = el('th', (s.col === c.k ? (s.asc ? 'asc sorted' : 'sorted') : ''), esc(c.t));
+    th.title = c.help || '';
+    th.onclick = () => {
+      STATE.sort[key] = { col: c.k, asc: s.col === c.k ? !s.asc : false };
+      renderTable(tableEl, rows, cols, key);
+    };
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr); tableEl.appendChild(thead);
+
+  let data = rows.slice();
+  if (s.col) {
+    data.sort((a, b) => {
+      const x = a[s.col], y = b[s.col];
+      const bothNum = !isNaN(parseFloat(x)) && !isNaN(parseFloat(y));
+      const cmp = bothNum ? (parseFloat(x) - parseFloat(y)) : String(x ?? '').localeCompare(String(y ?? ''));
+      return s.asc ? cmp : -cmp;
+    });
+  }
+
+  const tb = el('tbody');
+  data.forEach(r => {
+    const row = el('tr');
+    row.onclick = () => openDossier(r.symbol);
+    cols.forEach(c => row.appendChild(c.render(r)));
+    tb.appendChild(row);
+  });
+  tableEl.appendChild(tb);
+}
+
+const tdNum = (v, d = 2) => el('td', 'num', num(v, d));
+const yn = v => el('td', '', `<span class="pill ${v ? 'y' : 'n'}">${v ? 'yes' : 'no'}</span>`);
+
+const LANDSCAPE_COLS = [
+  { k: 'symbol', t: 'target', render: r => el('td', 'sym', esc(r.symbol)) },
+  { k: 'association_score', t: 'assoc', help: 'Open Targets association score',
+    render: r => el('td', '', `<div class="bar-cell"><span class="meter"><i style="width:${Math.min(100,(r.association_score||0)/0.6*100)}%"></i></span><span style="font-family:var(--mono)">${num(r.association_score,3)}</span></div>`) },
+  { k: 'n_actives', t: 'actives', help: 'distinct compounds measured against this target', render: r => tdNum(r.n_actives, 0) },
+  { k: 'best_pchembl', t: 'best pX', help: '−log10 molar potency; 9 = 1 nM', render: r => tdNum(r.best_pchembl) },
+  { k: 'n_clinical_drugs', t: 'drugs', help: 'compounds with a curated mechanism', render: r => tdNum(r.n_clinical_drugs, 0) },
+  { k: 'highest_phase', t: 'phase', render: r => tdNum(r.highest_phase, 0) },
+  { k: 'small_molecule_tractable', t: 'SM', help: 'small-molecule tractable', render: r => yn(r.small_molecule_tractable) },
+  { k: 'antibody_tractable', t: 'AB', help: 'antibody tractable', render: r => yn(r.antibody_tractable) },
+  { k: 'name', t: 'name', render: r => el('td', 'wide', esc((r.name || '').slice(0, 60))) },
+];
+
+// ---------- loaders ----------
+async function loadStats() {
+  const s = await api('/api/stats');
+  const c = s.counts;
+  $('#counts').innerHTML = ['target', 'compound', 'activity', 'trial', 'paper']
+    .map(k => `${k} <b>${c[k]}</b>`).join('');
+  const sel = $('#disease');
+  const prev = sel.value;
+  sel.innerHTML = s.diseases.map(d => `<option value="${esc(d.efo_id)}">${esc(d.name)} (${d.n_targets})</option>`).join('');
+  if (!s.diseases.length) {
+    sel.innerHTML = '<option value="">— graph is empty —</option>';
+  } else {
+    sel.value = prev && [...sel.options].some(o => o.value === prev) ? prev : s.diseases[0].efo_id;
+    STATE.disease = sel.value;
+  }
+  return s;
+}
+
+async function loadDisease() {
+  const efo = $('#disease').value;
+  if (!efo) return;
+  STATE.disease = efo;
+  banner('');
+  try {
+    const [l, g] = await Promise.all([
+      api('/api/landscape?efo_id=' + encodeURIComponent(efo)),
+      api('/api/gaps?efo_id=' + encodeURIComponent(efo)),
+    ]);
+    STATE.landscape = l.targets; STATE.gaps = g.targets;
+    renderTable($('#t-landscape'), l.targets, LANDSCAPE_COLS, 'landscape');
+    renderTable($('#t-gaps'), g.targets, LANDSCAPE_COLS, 'gaps');
+    loadTrials(efo);
+  } catch (e) { banner(e.message); }
+}
+
+async function loadTrials(efo) {
+  try {
+    const f = await api('/api/failures?efo_id=' + encodeURIComponent(efo));
+    const buckets = f.stop_reason_buckets || {};
+    const max = Math.max(1, ...Object.values(buckets));
+    const status = Object.entries(f.by_status || {})
+      .map(([k, v]) => `<span class="pill ${/TERMINATED|WITHDRAWN/.test(k) ? 'r' : /UNKNOWN|NO_LONGER/.test(k) ? 'w' : 'n'}">${esc(k.toLowerCase())} ${v}</span>`).join(' ');
+    const reasons = Object.entries(buckets).map(([k, v]) =>
+      `<div class="evi"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${v / max * 100}%;background:var(--oxygen)"></i></span><span>${v}</span></div>`).join('');
+    const ex = (f.examples || []).slice(0, 8).map(e =>
+      `<tr><td class="sym">${esc(e.nct_id)}</td><td class="num">${esc(e.phase || '—')}</td><td class="wide">${esc(e.reason || '')}</td></tr>`).join('');
+    $('#trials').innerHTML = `
+      <div class="card" style="margin-bottom:16px">
+        <div style="font-size:13px;margin-bottom:9px"><b>${f.n_trials}</b> trials · <b>${f.n_stopped_with_reason}</b> stopped with a stated reason</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">${status}</div>
+        ${reasons}
+      </div>
+      <div class="tw"><table><thead><tr><th>NCT</th><th>phase</th><th>stated reason</th></tr></thead><tbody>${ex}</tbody></table></div>`;
+  } catch (e) { $('#trials').innerHTML = `<div class="note">${esc(e.message)}</div>`; }
+}
+
+// ---------- dossier drawer ----------
+async function openDossier(symbol) {
+  if (!symbol) return;
+  $('#scrim').classList.add('on'); $('#drawer').classList.add('on');
+  $('#drawerBody').innerHTML = `<h2>${esc(symbol)}</h2><div class="note"><span class="spin"></span> building dossier…</div>`;
+  const sel = $('#disease').selectedOptions[0];
+  const dName = sel ? sel.textContent.replace(/\s*\(\d+\)$/, '') : '';
+  try {
+    const d = await api(`/api/dossier?symbol=${encodeURIComponent(symbol)}&disease=${encodeURIComponent(dName)}`);
+    const p = d.profile, ch = d.chemistry || {}, cl = d.clinical || {}, a = d.assessment || {};
+    const pot = ch.potency || {};
+    const fd = d.focus_disease || {};
+    const dts = fd.datatype_scores || {};
+    const evi = Object.entries(dts).sort((x, y) => y[1] - x[1]).map(([k, v]) =>
+      `<div class="evi"><span class="lbl">${esc(k)}</span><span class="track"><i style="width:${v * 100}%"></i></span><span>${num(v, 3)}</span></div>`).join('');
+    const mods = (p.tractability || []).reduce((m, t) => { (m[t.modality] ||= []).push(t.label); return m; }, {});
+    const probes = (p.chemical_probes || []).filter(x => x.high_quality);
+    const tops = (ch.top_compounds || []).slice(0, 6).map(c =>
+      `<tr><td class="sym">${esc(c.chembl_id)}</td><td class="num">${num(c.best_pchembl)}</td><td class="num">${num(c.max_phase,0)}</td><td class="wide" style="font-family:var(--mono);font-size:11px">${esc((c.pref_name || c.smiles || '').slice(0, 34))}</td></tr>`).join('');
+
+    $('#drawerBody').innerHTML = `
+      <h2>${esc(d.symbol)}</h2>
+      <div class="sub">${esc(p.name || '')}</div>
+      <div class="card" style="margin:14px 0"><b style="font-size:13px">${esc(a.verdict || '')}</b>
+        <ul style="margin-top:9px">
+          ${(a.strengths || []).map(s => `<li class="plus">${esc(s)}</li>`).join('')}
+          ${(a.risks || []).map(s => `<li class="minus">${esc(s)}</li>`).join('')}
+        </ul>
+      </div>
+      ${evi ? `<h3 style="font-size:13px;margin-top:18px">Evidence for ${esc(fd.name || '')} · ${num(fd.score, 3)}</h3>${evi}` : ''}
+      <h3 style="font-size:13px;margin-top:18px">Safety</h3>
+      <dl class="kv">
+        <dt>pan-essential</dt><dd>${p.is_essential ? '<span class="pill r">yes — knockout is lethal in cell lines</span>' : '<span class="pill y">no</span>'}</dd>
+        <dt>LOEUF bin</dt><dd>${p.loeuf_bin === 0 ? '<span class="pill r">0 — most constrained decile</span>' : esc(p.loeuf_bin ?? '—')}</dd>
+        <dt>liabilities</dt><dd>${(p.safety_liabilities || []).length || 'none recorded'}</dd>
+        <dt>pleiotropy</dt><dd>${p.n_associated_diseases ?? '—'} associated diseases</dd>
+      </dl>
+      <h3 style="font-size:13px;margin-top:18px">Tractability</h3>
+      <dl class="kv">
+        ${Object.entries(mods).map(([m, l]) => `<dt>${esc({SM:'small molecule',AB:'antibody',PR:'PROTAC',OC:'other clinical'}[m] || m)}</dt><dd>${esc(l.slice(0,3).join(', '))}</dd>`).join('') || '<dt>—</dt><dd>no modality evidence</dd>'}
+        <dt>probes</dt><dd>${probes.length ? esc(probes.map(x => x.id).join(', ')) : 'none high quality'}</dd>
+      </dl>
+      <h3 style="font-size:13px;margin-top:18px">Chemical matter</h3>
+      <dl class="kv">
+        <dt>compounds</dt><dd>${ch.n_compounds ?? 0}</dd>
+        <dt>best / median pX</dt><dd>${num(pot.best)} / ${num(pot.median)}</dd>
+        <dt>potent (≥7)</dt><dd>${pot.n_potent ?? 0}</dd>
+        <dt>clinical drugs</dt><dd>${cl.n_drugs ?? 0} (approved ${cl.n_approved ?? 0}, max phase ${num(cl.max_phase, 0)})</dd>
+      </dl>
+      ${tops ? `<div class="tw" style="margin-top:10px"><table><thead><tr><th>chembl</th><th>pX</th><th>phase</th><th>name / smiles</th></tr></thead><tbody>${tops}</tbody></table></div>` : ''}`;
+  } catch (e) {
+    $('#drawerBody').innerHTML = `<h2>${esc(symbol)}</h2><div class="err">${esc(e.message)}</div>`;
+  }
+}
+function closeDrawer() { $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); }
+
+// ---------- jobs ----------
+async function runJob(path, body, logEl, onDone) {
+  const job = await api(path, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  logEl.textContent = 'starting…';
+  return new Promise((resolve, reject) => {
+    const tick = async () => {
+      try {
+        const j = await api('/api/job?id=' + job.id);
+        logEl.textContent = (j.progress || []).join('\n') || 'working…';
+        logEl.scrollTop = logEl.scrollHeight;
+        if (j.status === 'running') return setTimeout(tick, 900);
+        if (j.status === 'error') { logEl.textContent += '\n\n' + j.error; return reject(new Error(j.error)); }
+        onDone && onDone(j.result); resolve(j.result);
+      } catch (e) { reject(e); }
+    };
+    setTimeout(tick, 600);
+  });
+}
+
+function renderShortlist(res) {
+  const cards = res.shortlist.map(s => `
+    <div class="card">
+      <span class="rank">#${s.rank} · ${num(s.score, 3)}</span>
+      <h3>${esc(s.symbol)}</h3>
+      <div style="font-size:11px;color:var(--muted)">${esc((s.name || '').slice(0, 44))}</div>
+      <div class="verdict">${esc(s.verdict || '')}</div>
+      <div class="comps">${Object.entries(s.components || {}).map(([k, v]) => `<span class="comp">${esc(k.slice(0,5))} <b>${num(v, 2)}</b></span>`).join('')}</div>
+      <ul>${(s.strengths || []).map(x => `<li class="plus">${esc(x)}</li>`).join('')}${(s.risks || []).map(x => `<li class="minus">${esc(x)}</li>`).join('')}</ul>
+    </div>`).join('');
+  const moved = (res.movement || []).map(m =>
+    `<li>${esc(m.symbol)}: rank ${m.from_rank} → ${m.to_rank} <span style="color:var(--muted)">(${esc(m.reason)})</span></li>`).join('');
+  $('#shortlist').innerHTML = `
+    <div class="sub">${esc(res.disease)} · strategy <b>${esc(res.strategy)}</b> · ${res.n_surveyed} targets surveyed</div>
+    ${moved ? `<div class="card" style="margin-bottom:14px"><b style="font-size:13px">What changed after the deep dive</b><ul style="margin-top:7px">${moved}</ul></div>` : ''}
+    <div class="cards">${cards}</div>
+    ${(res.next_actions || []).length ? `<h2 class="sec">Next actions</h2><div class="card"><ul>${res.next_actions.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>` : ''}`;
+  res.shortlist.forEach(s => { });
+  document.querySelectorAll('#shortlist .card h3').forEach(h => {
+    h.style.cursor = 'pointer';
+    h.onclick = () => openDossier(h.textContent.trim());
+  });
+}
+
+// ---------- wiring ----------
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.tab));
+});
+$('#disease').onchange = loadDisease;
+$('#scrim').onclick = closeDrawer;
+$('#closeDrawer').onclick = closeDrawer;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+$('#btnIngest').onclick = async () => {
+  const name = $('#newDisease').value.trim();
+  if (!name) return banner('Type a disease name first.');
+  const btn = $('#btnIngest'); btn.disabled = true;
+  banner('');
+  const log = el('pre', 'log', 'starting…');
+  $('#banner').innerHTML = ''; $('#banner').appendChild(log);
+  try {
+    await runJob('/api/ingest', { disease: name, n_targets: 20 }, log);
+    $('#newDisease').value = '';
+    await loadStats(); await loadDisease();
+    $('#banner').innerHTML = '';
+  } catch (e) { banner(e.message); }
+  finally { btn.disabled = false; }
+};
+
+$('#btnInvestigate').onclick = async () => {
+  const sel = $('#disease').selectedOptions[0];
+  const name = $('#newDisease').value.trim() || (sel ? sel.textContent.replace(/\s*\(\d+\)$/, '') : '');
+  if (!name) return banner('Pick or type a disease first.');
+  document.querySelector('nav button[data-tab=shortlist]').click();
+  const btn = $('#btnInvestigate'); btn.disabled = true;
+  const log = el('pre', 'log', 'starting…');
+  $('#shortlist').innerHTML = ''; $('#shortlist').appendChild(log);
+  try {
+    const res = await runJob('/api/investigate', { disease: name, strategy: $('#strategy').value, top_n: 6 }, log);
+    renderShortlist(res);
+    await loadStats();
+  } catch (e) { $('#shortlist').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+  finally { btn.disabled = false; }
+};
+
+const SUGGESTIONS = [
+  'Which undrugged target here is the best bet, and what would kill it?',
+  'Why do trials fail in this indication, and what should a new programme avoid?',
+  'Compare KRAS and SMAD4 as targets. Which is the better place to start?',
+  'How many qubits would H2O need, and is that worth running?',
+];
+$('#chips').innerHTML = SUGGESTIONS.map(s => `<span class="chip">${esc(s)}</span>`).join('');
+$('#chips').onclick = e => { if (e.target.classList.contains('chip')) { $('#q').value = e.target.textContent; $('#btnAsk').click(); } };
+
+$('#btnAsk').onclick = async () => {
+  const q = $('#q').value.trim();
+  if (!q) return;
+  const sel = $('#disease').selectedOptions[0];
+  const ctx = sel ? ` (indication of interest: ${sel.textContent.replace(/\s*\(\d+\)$/, '')})` : '';
+  const btn = $('#btnAsk'); btn.disabled = true;
+  const log = el('pre', 'log', 'starting…');
+  $('#askout').innerHTML = ''; $('#askout').appendChild(log);
+  try {
+    const res = await runJob('/api/ask', { question: q + ctx }, log);
+    const used = Object.entries(res.tools_used || {}).map(([k, v]) => `${k}×${v}`).join(', ');
+    $('#askout').innerHTML = `<div class="answer">${esc(res.answer)}</div>
+      <div class="sub" style="margin-top:9px">${res.n_tool_calls} tool calls · ${esc(used)}</div>`;
+  } catch (e) {
+    $('#askout').innerHTML = `<div class="err">${esc(e.message)}</div>
+      <div class="sub">The agent needs <code>ANTHROPIC_API_KEY</code> set in the shell that started the server. Everything else on this page works without it.</div>`;
+  } finally { btn.disabled = false; }
+};
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnAsk').click(); });
+
+(async () => {
+  try { await loadStats(); await loadDisease(); }
+  catch (e) { banner(e.message); }
+})();
+</script>
+</body>
+</html>

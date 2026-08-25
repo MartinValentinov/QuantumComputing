@@ -32,6 +32,7 @@ dev = ["pytest>=8.0", "ruff>=0.6"]
 qc-research = "qc_research.cli:main"
 qc-bench = "qc_quantum.benchmark:main"
 qc-design = "qc_design.cli:main"
+qc-ui = "qc_ui.server:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -39,6 +40,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+qc_ui = ["static/*.html"]
 
 [tool.ruff]
 line-length = 90

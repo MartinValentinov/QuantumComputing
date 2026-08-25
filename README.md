@@ -85,6 +85,7 @@ that share a repo rather than a dependency graph.
 | `qc_research` | Pulls biomedical databases into one queryable knowledge graph | **working** |
 | `qc_quantum` | Quantum vs classical electronic-structure benchmarking | **working** |
 | `qc_design` | Hybrid agent: an LLM that reasons over the graph and calls quantum tools | **tool layer working** |
+| `qc_ui` | Local web UI over the graph — stdlib only, no build step | **working** |
 
 ## qc_research — the research graph
 
@@ -381,3 +382,32 @@ imply otherwise.
 
 Needs `ANTHROPIC_API_KEY` (or `ant auth login`) for `ask`. `tools` and
 `dry-run` need neither.
+
+---
+
+## qc_ui — the local UI
+
+```bash
+PYTHONPATH=src .venv/bin/python -m qc_ui
+```
+
+Opens `http://127.0.0.1:8765`. Stdlib only — `http.server` plus one HTML file.
+No Flask, no npm, no build step, consistent with the rest of `qc_research`.
+
+| View | What it does |
+|---|---|
+| **Landscape** | Sortable target table; click any row for the full dossier in a side drawer |
+| **Opportunity gaps** | Evidenced + tractable + undrugged |
+| **Trial failures** | Status pills and stop-reason bars, with the actual `whyStopped` text |
+| **Shortlist** | Runs the three-pass investigation, shows what moved after the deep dive |
+| **Ask** | The `qc_design` agent, with a live tool-call log |
+
+Ingest, investigate and ask each take minutes, which is far past what a browser
+will wait on one request — so they run on a background thread behind a job id
+and the page polls, streaming progress into a log panel.
+
+Binds to **localhost only**. It serves an unauthenticated API onto a local
+database: fine on your own machine, not something to expose to a network.
+
+`Ask` needs `ANTHROPIC_API_KEY` in the shell that started the server. Every
+other view works without it.
