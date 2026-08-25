@@ -16,6 +16,12 @@ quantum = [
     "matplotlib>=3.8",
 ]
 design = [
+    # The installed SDK (0.46.0) predates `beta.messages.tool_runner` and the
+    # adaptive-thinking parameter; the agent degrades gracefully but wants a
+    # current one.
+    "anthropic>=0.70",
+]
+design-chem = [
     "rdkit>=2024.3",
     "botorch>=0.11",
     "ax-platform>=0.4",
@@ -25,6 +31,7 @@ dev = ["pytest>=8.0", "ruff>=0.6"]
 [project.scripts]
 qc-research = "qc_research.cli:main"
 qc-bench = "qc_quantum.benchmark:main"
+qc-design = "qc_design.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

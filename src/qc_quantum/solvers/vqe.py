@@ -78,7 +78,14 @@ def solve_vqe(
     wall = time.perf_counter() - t0
 
     electronic = float(result.eigenvalue.real)
-    total = electronic + qp.nuclear_repulsion
+
+    # The eigenvalue is only the *active space* energy. Recovering a total
+    # energy means adding back every constant the problem carries: nuclear
+    # repulsion, and -- crucially -- the frozen-core shift, which is large
+    # (tens of Hartree for anything with a second-row atom). Adding nuclear
+    # repulsion alone silently produces a number that is wrong by exactly the
+    # core energy, and it looks plausible enough to miss.
+    total, shifts = _total_energy(problem, electronic, qp.nuclear_repulsion)
 
     return EnergyResult(
         method=f"VQE/{ansatz}",
@@ -86,10 +93,34 @@ def solve_vqe(
         wall_seconds=wall,
         converged=True,
         detail={
-            "electronic_energy": electronic,
+            "active_space_energy": electronic,
+            "energy_shifts": shifts,
             "n_parameters": int(circuit.num_parameters),
             "n_qubits": qp.n_qubits,
             "n_pauli_terms": qp.n_pauli_terms,
             "optimizer_evals": int(getattr(result, "cost_function_evals", 0) or 0),
         },
     )
+
+
+def _total_energy(problem, electronic: float, nuclear_repulsion: float):
+    """Assemble a total energy from an active-space eigenvalue.
+
+    Prefers qiskit-nature's own `interpret`, which knows about every
+    transformer applied to the problem. Falls back to summing the
+    Hamiltonian's constants, and only as a last resort to nuclear repulsion
+    alone -- which is correct only when no core was frozen.
+    """
+    try:
+        interpreted = problem.interpret(
+            type("_R", (), {"eigenvalue": complex(electronic, 0.0)})()
+        )
+        return float(interpreted.total_energies[0].real), {"via": "interpret"}
+    except Exception:
+        pass
+
+    constants = dict(getattr(problem.hamiltonian, "constants", {}) or {})
+    if constants:
+        return electronic + sum(float(v) for v in constants.values()), constants
+
+    return electronic + nuclear_repulsion, {"nuclear_repulsion": nuclear_repulsion}
