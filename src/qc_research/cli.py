@@ -6,6 +6,7 @@
     python -m qc_research failures  "pancreatic ductal adenocarcinoma"
     python -m qc_research compounds KRAS
     python -m qc_research dossier   KRAS --disease "pancreatic ductal adenocarcinoma"
+    python -m qc_research investigate "pancreatic ductal adenocarcinoma" --strategy novel
     python -m qc_research stats
 """
 
@@ -15,7 +16,7 @@ import argparse
 import json
 import sys
 
-from qc_research import db, dossier, queries, render
+from qc_research import db, dossier, investigate as investigate_mod, queries, render
 from qc_research.pipeline import IngestConfig, ingest_disease
 from qc_research.sources import opentargets
 
@@ -69,6 +70,19 @@ def main(argv: list[str] | None = None) -> int:
     ds.add_argument("--markdown", action="store_true")
     ds.add_argument("--json", action="store_true")
     ds.add_argument("--out", default=None, help="write to a file instead of stdout")
+
+    iv = sub.add_parser("investigate", help="survey -> deep dive -> ranked shortlist")
+    iv.add_argument("disease")
+    iv.add_argument(
+        "--strategy",
+        default="balanced",
+        choices=sorted(investigate_mod.STRATEGIES),
+        help="novel = find untaken opportunities; fast = shortest path to a molecule",
+    )
+    iv.add_argument("--top", type=int, default=5)
+    iv.add_argument("--no-literature", action="store_true")
+    iv.add_argument("--markdown", action="store_true")
+    iv.add_argument("--out", default=None)
 
     sub.add_parser("stats", help="row counts per table")
 
@@ -149,6 +163,28 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote {args.out}")
         else:
             print(text)
+
+    elif args.cmd == "investigate":
+        inv = investigate_mod.investigate(
+            conn,
+            args.disease,
+            strategy=args.strategy,
+            top_n=args.top,
+            skip_literature=args.no_literature,
+        )
+        text = (
+            render.investigation_markdown(inv)
+            if args.markdown
+            else render.investigation_text(inv)
+        )
+        if args.out:
+            from pathlib import Path
+
+            Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.out).write_text(text)
+            print(f"\nwrote {args.out}")
+        else:
+            print("\n" + text)
 
     elif args.cmd == "stats":
         for t, n in db.stats(conn).items():

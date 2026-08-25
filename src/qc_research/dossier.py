@@ -370,7 +370,10 @@ def assess(d: Dossier) -> dict:
     elif n_compounds == 0:
         risks.append("no measured chemical matter -- hit finding starts from zero")
     elif n_potent < 5:
-        risks.append(f"thin chemical matter (only {n_potent} potent compounds)")
+        risks.append(
+            f"thin chemical matter: {n_compounds} compound(s) measured, "
+            f"{n_potent} at pChEMBL>={POTENT:.0f}"
+        )
 
     probes = [x for x in p.get("chemical_probes", []) if x.get("high_quality")]
     if probes:
@@ -411,19 +414,32 @@ def assess(d: Dossier) -> dict:
             f"associated with {n_dis} diseases -- highly pleiotropic, selectivity will be hard"
         )
 
+    # Verdict is a decision tree over two axes: clinical precedent, and how
+    # much chemical matter exists. Tractability gates the whole thing -- an
+    # untractable target is difficult regardless of everything else.
+    tractable = "SM" in modalities
+
     if clin.get("n_approved") or best_phase >= 4:
         verdict = "precedented -- competition, not feasibility, is the question"
-    elif n_potent >= 20 and "SM" in modalities:
+    elif not tractable:
+        alt = sorted(modalities - {"SM"})
+        verdict = (
+            "difficult -- no small-molecule tractability"
+            + (f"; consider {'/'.join(alt)}" if alt else "")
+        )
+    elif n_potent >= 20:
         stage = f", best phase {best_phase:.0f}" if best_phase else ""
         verdict = (
             "chemically enabled but not yet approved"
             f"{stage} -- the interesting quadrant"
         )
-    elif n_compounds == 0 and "SM" in modalities:
-        risks_note = "tractable in principle, nothing made yet -- highest risk, highest novelty"
-        verdict = risks_note
+    elif n_compounds == 0:
+        verdict = "tractable in principle, nothing made yet -- highest risk, highest novelty"
     else:
-        verdict = "difficult -- weak tractability or weak evidence"
+        verdict = (
+            f"tractable, but chemical matter is early "
+            f"({n_compounds} compounds, {n_potent} potent) -- needs hit finding"
+        )
 
     return {"verdict": verdict, "strengths": strengths, "risks": risks}
 
@@ -459,19 +475,38 @@ def build(
             }
             disease_name = row["name"]
         else:
-            # Not in the local graph -- fall back to the live association list.
+            # Not in the local graph. A cached profile carries no association
+            # list (it is not persisted), so fetch one rather than silently
+            # dropping the association section.
+            associations = profile.get("associated_diseases") or []
+            if not associations:
+                associations = opentargets.fetch_target_profile(
+                    d.ensembl_id, n_diseases=200
+                )["associated_diseases"]
+                profile["associated_diseases"] = associations
+
+            needle = disease.lower()
             match = next(
-                (
-                    x for x in profile.get("associated_diseases", [])
-                    if disease.lower() in x["name"].lower()
-                ),
-                None,
+                (x for x in associations if needle in x["name"].lower()), None
             )
             if match:
                 d.focus_disease = match
                 disease_name = match["name"]
             else:
+                # Unknown to Open Targets for this target. Still usable as a
+                # free-text query for trials and literature, but there is no
+                # association score to report -- say so rather than implying one.
                 disease_name = disease
+                d.focus_disease = {
+                    "efo_id": None,
+                    "name": disease,
+                    "score": None,
+                    "datatype_scores": {},
+                    "note": (
+                        f"{disease!r} is not among the top associated diseases for "
+                        f"{d.symbol} -- used as a free-text filter only"
+                    ),
+                }
 
     chembl_target = profile.get("chembl_id")
     if not chembl_target and profile.get("uniprot_ids"):

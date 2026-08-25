@@ -36,7 +36,12 @@ def dossier_text(d: Dossier) -> str:
     # ---- disease association ----
     if d.focus_disease:
         out.append(_rule("DISEASE ASSOCIATION"))
-        out.append(f"  overall score   {d.focus_disease.get('score', 0):.3f}")
+        if d.focus_disease.get("note"):
+            out.append(f"  {d.focus_disease['note']}")
+        if d.focus_disease.get("score") is None:
+            out.append("  no association score -- target/disease pair not linked")
+        else:
+            out.append(f"  overall score   {d.focus_disease['score']:.3f}")
         dts = d.focus_disease.get("datatype_scores") or {}
         if dts:
             out.append("  evidence breakdown:")
@@ -226,3 +231,135 @@ def _wrap(text: str, width: int, indent: int) -> str:
     lines = textwrap.wrap(text, width)
     pad = " " * indent
     return ("\n" + pad).join(lines[:4])
+
+
+# ---------------------------------------------------------------------------
+# investigation reports
+# ---------------------------------------------------------------------------
+
+def investigation_text(inv) -> str:
+    out: list[str] = []
+    out.append("=" * 78)
+    out.append(f"  INVESTIGATION: {inv.disease}")
+    out.append(f"  strategy: {inv.strategy}   surveyed: {inv.n_surveyed} targets")
+    out.append("=" * 78)
+
+    w = inv.shortlist[0]["final_score"]["weights"] if inv.shortlist else {}
+    out.append(_rule("RANKING RUBRIC"))
+    out.append("  " + "   ".join(f"{k}={v:.2f}" for k, v in w.items()))
+    out.append("  every component below is 0-1 and traces to a database field")
+
+    out.append(_rule("SHORTLIST"))
+    head = (
+        f"  {'#':<3}{'symbol':<10}{'score':>7}{'evid':>7}{'tract':>7}"
+        f"{'chem':>7}{'prec':>7}{'safe':>7}  verdict"
+    )
+    out.append(head)
+    out.append("  " + "-" * (len(head) - 2))
+    for i, r in enumerate(inv.shortlist, 1):
+        c = r["final_score"]["components"]
+        out.append(
+            f"  {i:<3}{r['symbol']:<10}"
+            f"{r['final_score']['score']:>7.3f}"
+            f"{c['evidence']:>7.2f}{c['tractability']:>7.2f}"
+            f"{c['chemistry']:>7.2f}{c['precedent']:>7.2f}{c['safety']:>7.2f}"
+            f"  {r['dossier'].assessment.get('verdict', '')[:34]}"
+        )
+
+    if inv.movement:
+        out.append(_rule("WHAT CHANGED AFTER THE DEEP DIVE"))
+        for m in inv.movement:
+            arrow = "v" if m["to_rank"] > m["from_rank"] else "^"
+            out.append(
+                f"  {arrow} {m['symbol']:<10} rank {m['from_rank']} -> {m['to_rank']}"
+                f"   ({m['reason']})"
+            )
+    else:
+        out.append(_rule("WHAT CHANGED AFTER THE DEEP DIVE"))
+        out.append("  nothing -- the cheap survey and the full dossier agreed")
+
+    out.append(_rule("PER-TARGET SUMMARY"))
+    for i, r in enumerate(inv.shortlist, 1):
+        d = r["dossier"]
+        chem, clin = d.chemistry, d.clinical
+        pot = (chem.get("potency") or {})
+        out.append("")
+        out.append(f"  {i}. {r['symbol']}  --  {(d.profile.get('name') or '')[:50]}")
+        out.append(f"     {d.assessment.get('verdict', '')}")
+        out.append(
+            f"     association {(r.get('association_score') or 0):.3f}"
+            f" | compounds {chem.get('n_compounds', 0)}"
+            f" | best pChEMBL {pot.get('best') or 0:.2f}"
+            f" | clinical drugs {clin.get('n_drugs', 0)}"
+            f" | max phase {clin.get('max_phase') or 0:.0f}"
+        )
+        for s in d.assessment.get("strengths", [])[:3]:
+            out.append(f"       + {s}")
+        for k in d.assessment.get("risks", [])[:3]:
+            out.append(f"       - {k}")
+
+    ctx = inv.indication_context
+    if ctx.get("n_trials"):
+        out.append(_rule("INDICATION CONTEXT"))
+        out.append(f"  trials in graph          {ctx['n_trials']}")
+        out.append(f"  stopped with a reason    {ctx.get('n_stopped_with_reason', 0)}")
+        for k, v in (ctx.get("stop_reason_buckets") or {}).items():
+            out.append(f"    {k:<30}{v:>4}")
+
+    if inv.next_actions:
+        out.append(_rule("NEXT ACTIONS"))
+        for a in inv.next_actions:
+            out.append(f"  * {_wrap(a, 70, 4)}")
+    out.append("")
+    return "\n".join(out)
+
+
+def investigation_markdown(inv) -> str:
+    md = [f"# Investigation — {inv.disease}", ""]
+    md.append(f"**Strategy:** `{inv.strategy}` · **Targets surveyed:** {inv.n_surveyed}")
+    md.append("")
+    md.append("## Shortlist")
+    md.append("")
+    md.append("| # | Target | Score | Evidence | Tractability | Chemistry | Precedent | Safety | Verdict |")
+    md.append("|---|---|---|---|---|---|---|---|---|")
+    for i, r in enumerate(inv.shortlist, 1):
+        c = r["final_score"]["components"]
+        md.append(
+            f"| {i} | **{r['symbol']}** | {r['final_score']['score']:.3f} "
+            f"| {c['evidence']:.2f} | {c['tractability']:.2f} | {c['chemistry']:.2f} "
+            f"| {c['precedent']:.2f} | {c['safety']:.2f} "
+            f"| {r['dossier'].assessment.get('verdict', '')} |"
+        )
+
+    if inv.movement:
+        md.append("\n## What changed after the deep dive\n")
+        for m in inv.movement:
+            md.append(
+                f"- **{m['symbol']}** moved rank {m['from_rank']} → {m['to_rank']} "
+                f"({m['reason']})"
+            )
+
+    md.append("\n## Per-target\n")
+    for i, r in enumerate(inv.shortlist, 1):
+        d = r["dossier"]
+        md.append(f"### {i}. {r['symbol']} — {d.profile.get('name') or ''}\n")
+        md.append(f"> {d.assessment.get('verdict', '')}\n")
+        for s in d.assessment.get("strengths", []):
+            md.append(f"- ✅ {s}")
+        for k in d.assessment.get("risks", []):
+            md.append(f"- ⚠️ {k}")
+        md.append("")
+
+    ctx = inv.indication_context
+    if ctx.get("stop_reason_buckets"):
+        md.append("## Why trials stop in this indication\n")
+        md.append("| Reason | Count |")
+        md.append("|---|---|")
+        for k, v in ctx["stop_reason_buckets"].items():
+            md.append(f"| {k} | {v} |")
+
+    if inv.next_actions:
+        md.append("\n## Next actions\n")
+        for a in inv.next_actions:
+            md.append(f"- {a}")
+    return "\n".join(md)
