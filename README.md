@@ -244,13 +244,21 @@ PYTHONPATH=src qc/qiskit-modern/bin/python -m qc_quantum.benchmark H2
 ```
 
 ```
-H2  (2 atoms, sto3g, 2 qubits, 5 Pauli terms)
+H2O  (3 atoms, sto3g, 10 qubits, 551 Pauli terms)
 method                  E (Ha)    err vs ref  chem acc      sec
-HF                 -1.11690056     +0.020401        no     0.01
-CCSD               -1.13730172     -0.000000       yes     0.01
-FCI                -1.13730156     +0.000000       yes     0.00
-VQE/uccsd          -1.13730156     +0.000000       yes     0.04
+HF                -74.96440482     +0.051024        no     0.01
+MP2               -75.00091684     +0.014512        no     0.03
+CCSD              -75.01530778     +0.000121       yes     0.01
+CCSD(T)           -75.01537643     +0.000052       yes     0.00
+FCI               -75.01542879     +0.000000       yes     0.02
+VQE/uccsd         -75.01524959     +0.000179       yes  4044.22
 ```
+
+VQE reaches chemical accuracy. It takes **4,044 seconds** to do it, on a
+noiseless simulator, for three atoms in a minimal basis. FCI — exact in this
+basis — takes 0.02s, and CCSD(T) gets a *better* answer in under 0.01s.
+That ratio is the finding, and it is why this package is scoped as a benchmark
+harness rather than a design engine.
 
 Runs VQE *and* the classical ladder (HF → MP2 → CCSD → CCSD(T) → FCI) on the
 same molecule, reports error against an exact reference and wall time for each.

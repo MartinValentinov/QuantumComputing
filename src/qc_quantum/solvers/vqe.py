@@ -106,21 +106,18 @@ def solve_vqe(
 def _total_energy(problem, electronic: float, nuclear_repulsion: float):
     """Assemble a total energy from an active-space eigenvalue.
 
-    Prefers qiskit-nature's own `interpret`, which knows about every
-    transformer applied to the problem. Falls back to summing the
-    Hamiltonian's constants, and only as a last resort to nuclear repulsion
-    alone -- which is correct only when no core was frozen.
-    """
-    try:
-        interpreted = problem.interpret(
-            type("_R", (), {"eigenvalue": complex(electronic, 0.0)})()
-        )
-        return float(interpreted.total_energies[0].real), {"via": "interpret"}
-    except Exception:
-        pass
+    The Hamiltonian carries every constant that was subtracted out on the way
+    to the active space -- nuclear repulsion, and the frozen-core shift, which
+    is tens of Hartree for anything past the first row. Summing them by name is
+    both correct and self-documenting: the returned dict is what made the
+    original bug visible, because it shows a -60.6 Ha term that the old code
+    was dropping on the floor.
 
+    Falls back to nuclear repulsion alone only if no constants are exposed,
+    which is right only when nothing was frozen.
+    """
     constants = dict(getattr(problem.hamiltonian, "constants", {}) or {})
     if constants:
         return electronic + sum(float(v) for v in constants.values()), constants
 
-    return electronic + nuclear_repulsion, {"nuclear_repulsion": nuclear_repulsion}
+    return electronic + nuclear_repulsion, {"nuclear_repulsion_energy": nuclear_repulsion}
