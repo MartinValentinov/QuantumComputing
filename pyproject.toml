@@ -26,6 +26,7 @@ design-chem = [
     "botorch>=0.11",
     "ax-platform>=0.4",
 ]
+model = ["numpy>=1.26"]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [project.scripts]
@@ -33,6 +34,7 @@ qc-research = "qc_research.cli:main"
 qc-bench = "qc_quantum.benchmark:main"
 qc-design = "qc_design.cli:main"
 qc-ui = "qc_ui.server:main"
+qc-model = "qc_model.train:main"
 
 [build-system]
 requires = ["setuptools>=68"]

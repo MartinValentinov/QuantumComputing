@@ -86,6 +86,7 @@ that share a repo rather than a dependency graph.
 | `qc_quantum` | Quantum vs classical electronic-structure benchmarking | **working** |
 | `qc_design` | Hybrid agent: an LLM that reasons over the graph and calls quantum tools | **tool layer working** |
 | `qc_ui` | Local web UI over the graph — stdlib only, no build step | **working** |
+| `qc_model` | A molecular potency model built from first principles | **working** |
 
 ## qc_research — the research graph
 
@@ -411,3 +412,66 @@ database: fine on your own machine, not something to expose to a network.
 
 `Ask` needs `ANTHROPIC_API_KEY` in the shell that started the server. Every
 other view works without it.
+
+---
+
+## qc_model — a model from first principles
+
+```bash
+PYTHONPATH=src .venv/bin/python -m qc_model LRRK2
+```
+
+Nothing here wraps a cheminformatics library. SMILES parsing, aromaticity
+perception, circular fingerprints, scaffold splitting, and backpropagation are
+all written out. Only numpy is required.
+
+### Result on LRRK2 (3,489 compounds from the graph)
+
+| Model | RMSE | MAE | R² | Spearman |
+|---|---|---|---|---|
+| mean predictor | 1.165 | 0.956 | −0.000 | −0.030 |
+| ridge regression | 1.001 | 0.722 | 0.261 | 0.674 |
+| **neural net** | **0.822** | **0.613** | **0.502** | **0.743** |
+
+That is a **scaffold split** — test molecules share no Bemis-Murcko framework
+with anything in training. The same network on a random split scores R² 0.646.
+
+```
+scaffold-split R2 0.502   random-split R2 0.646
+random split overstates R2 by +0.145
+```
+
+Both numbers get printed on every run, on purpose. A random split lets
+analogues of the same scaffold land on both sides, so the model gets credit for
+recognising chemistry it has effectively already seen. The scaffold number is
+the one that predicts new chemistry.
+
+### The pieces
+
+| File | What it implements |
+|---|---|
+| `smiles.py` | SMILES → molecular graph, implicit hydrogens, ring perception, Kekulé→aromatic |
+| `fingerprint.py` | Morgan/ECFP circular fingerprints + whole-molecule descriptors |
+| `split.py` | Bemis–Murcko scaffolds and the scaffold split |
+| `nn.py` | Linear/ReLU/Dropout layers, Adam, and backprop — no autograd |
+| `data.py` | Graph → (X, y), with train-only standardisation |
+| `metrics.py` | RMSE/MAE/R²/Spearman, plus closed-form ridge as the baseline |
+| `train.py` | The full comparison |
+
+### Three things that would silently ruin this
+
+- **Hydrogen counting.** It feeds the fingerprint, and nothing downstream
+  complains when it is wrong. Pyridine-N and pyrrole-N both end up with two
+  aromatic bonds but differ by one hydrogen — the Kekulé form is the only place
+  that distinction survives, so hydrogens are counted once, before bond orders
+  are rewritten.
+- **Representation invariance.** `c1ccccc1` and `C1=CC=CC=C1` are the same
+  molecule and must fingerprint identically, or the model learns to tell two
+  spellings of benzene apart. 43 tests in `tests/test_chemistry.py` pin this
+  down across 19 molecules, including fused systems and negative controls
+  (p-benzoquinone must *not* aromatise).
+- **Leaky splits.** Reported as scaffold overlap on every run; it should be zero.
+
+```bash
+PYTHONPATH=src .venv/bin/python -m pytest tests/ -q
+```
