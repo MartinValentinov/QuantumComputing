@@ -87,6 +87,8 @@ that share a repo rather than a dependency graph.
 | `qc_design` | Hybrid agent: an LLM that reasons over the graph and calls quantum tools | **tool layer working** |
 | `qc_ui` | Local web UI over the graph — stdlib only, no build step | **working** |
 | `qc_model` | A molecular potency model built from first principles | **working** |
+| `qc_sample` | Simulated blood panels matched to disease signatures | **working** |
+| `qc_draw` | SMILES → 2D structure, functional-group detection | **working** |
 
 ## qc_research — the research graph
 
@@ -527,3 +529,65 @@ the one that predicts new chemistry.
 ```bash
 PYTHONPATH=src .venv/bin/python -m pytest tests/ -q
 ```
+
+---
+
+## qc_sample — blood sample to candidate
+
+```bash
+PYTHONPATH=src .venv/bin/python -m qc_ui     # "Blood sample" tab
+```
+
+A panel maps protein symbol to log2 fold change. Zero is normal, +1 is twice
+normal. The chain is: match the panel against disease signatures built from the
+graph, find which measured protein is driving the match, then search that
+protein's known binders.
+
+```
+01  Read the panel                 101 proteins measured, 19 outside normal range
+02  Matched to Parkinson disease   90.9% confidence, 20 of 20 signature proteins
+03  Driving protein: PARK7         5.51x normal, association 0.817
+04  Found chemistry against PARK7  17 compounds with structures and potencies
+05  Matched with a quantum kernel  8 qubits, 0.16s vs 0.003s classical
+06  Scored every candidate         six categories
+07  Best match: CHEMBL5559797      overall 76.6%, 28-atom scaffold, 9 groups
+```
+
+**The panel measures the same proteins for every sample**, including the other
+diseases' markers, which come back normal rather than absent. An earlier version
+only measured the true disease's proteins — every rival signature then scored
+zero for lack of overlap rather than lack of evidence, which made the matching
+trivially correct. On a shared 101-protein panel it gets 4 of 4 right, with
+confidence spread honestly: 91.9% on a clean case, 44.8% on a hard one, and
+degrading to 64.4% when the signal is weak.
+
+## The quantum kernel, measured
+
+A `zz_feature_map` circuit encodes eight molecular descriptors, and similarity
+is the state overlap |⟨φ(x)|φ(y)⟩|². It runs, on 8 qubits, exactly simulated.
+
+Rank agreement with classical kernels averages 0.295 — so it is computing
+something genuinely different. The question that matters is whether different
+is better, and that is testable: a kernel that captures something real should
+put compounds of **similar measured potency** next to each other.
+
+| kernel | mean neighbour potency gap | wins |
+|---|---|---|
+| Tanimoto | **0.384** | 5 / 8 targets |
+| RBF | 0.395 | 2 / 8 |
+| **quantum** | **0.429** | 1 / 8 |
+| random pairing | 0.441 | — |
+
+The quantum kernel is worse than both classical kernels and barely beats
+chance, at roughly 13× the cost. `qc_quantum.kernel.benchmark()` re-runs this on
+any target. The pipeline still shows it — measuring that is the point — but it
+does not rank on it, and every run says so.
+
+## The build sheet
+
+The honest form of a "recipe": the molecule split into scaffold and functional
+groups, each labelled with what it contributes — *"this azole binds the kinase
+hinge"*, *"this carboxylic acid kills brain penetration"*. Click a group and the
+structure redraws with those atoms highlighted. It deliberately stops short of a
+synthesis route: that needs a reaction-template database, and a plausible-looking
+route that does not work would be worse than none.

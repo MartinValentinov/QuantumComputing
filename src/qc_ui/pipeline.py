@@ -442,3 +442,210 @@ def explain(target: dict, candidate: dict) -> dict:
             pass
 
     return {"sections": lines, "groups": groups, "lipinski": lipinski}
+
+
+def build_sheet(smiles: str) -> dict:
+    """What the molecule is made of, piece by piece.
+
+    A scaffold plus a set of functional groups, each labelled with what it
+    contributes. This is the honest form of a "recipe": it says what the parts
+    are and why they are there, without inventing a synthesis route that has
+    not been checked against real reaction data.
+    """
+    try:
+        from qc_draw.features import detect, lipinski
+        from qc_model.smiles import parse
+        from qc_model.split import murcko_scaffold
+    except ImportError as e:
+        return {"error": str(e)}
+
+    try:
+        mol = parse(smiles)
+    except Exception as e:
+        return {"error": f"cannot parse: {e}"}
+
+    features = detect(mol)
+    scaffold_atoms = set()
+    try:
+        keep = {a.index for a in mol.atoms}
+        changed = True
+        while changed:
+            changed = False
+            for i in list(keep):
+                atom = mol.atoms[i]
+                if atom.in_ring:
+                    continue
+                if sum(1 for n in atom.neighbors if n in keep) <= 1:
+                    keep.discard(i)
+                    changed = True
+        scaffold_atoms = keep
+    except Exception:
+        pass
+
+    rings = sum(1 for f in features if "ring" in f.name)
+    return {
+        "n_atoms": mol.n_atoms,
+        "n_bonds": len(mol.bonds),
+        "scaffold_atoms": sorted(scaffold_atoms),
+        "scaffold_size": len(scaffold_atoms),
+        "side_chain_atoms": mol.n_atoms - len(scaffold_atoms),
+        "n_ring_systems": rings,
+        "parts": [
+            {"name": f.name, "role": f.why, "kind": f.kind, "atoms": sorted(f.atoms)}
+            for f in features
+        ],
+        "lipinski": lipinski(mol),
+    }
+
+
+def run_from_sample(
+    conn_path: str,
+    panel: dict[str, float],
+    log: Log = print,
+    top_n: int = 12,
+) -> dict:
+    """Protein panel in, ranked candidate cures out.
+
+    The chain is: match the panel to a disease signature, find which measured
+    protein is driving that match, then search the compounds known to bind it
+    for the ones most similar to its best-measured binder -- using a quantum
+    kernel alongside two classical ones, so the comparison is visible rather
+    than assumed.
+    """
+    from qc_sample import disease_signatures, driving_targets, match_diseases
+
+    conn = db.connect(conn_path)
+    stages: list[dict] = []
+
+    def stage(key, title, detail, data=None):
+        stages.append({"key": key, "title": title, "detail": detail, "data": data or {}})
+        log(f"[{len(stages)}] {title} — {detail}")
+
+    stage("sample", "Read the panel",
+          f"{len(panel)} proteins measured, "
+          f"{sum(1 for v in panel.values() if abs(v) > 1.0)} outside normal range",
+          {"n_proteins": len(panel)})
+
+    signatures = disease_signatures(conn)
+    if not signatures:
+        raise ValueError("no disease signatures in the graph -- ingest a disease first")
+    matches = match_diseases(panel, signatures, top_n=5)
+    best_match = matches[0]
+    stage("match", f"Matched to {best_match['name']}",
+          f"{best_match['confidence']}% confidence, "
+          f"{best_match['proteins_measured']} of "
+          f"{best_match['proteins_in_signature']} signature proteins measured",
+          {"matches": matches})
+
+    drivers = driving_targets(panel, signatures[best_match["efo_id"]])
+    if not drivers:
+        raise ValueError("no signature protein in this panel is abnormal")
+    stage("drivers", f"Driving protein: {drivers[0]['symbol']}",
+          f"{drivers[0]['fold_change']}x normal, association "
+          f"{drivers[0]['association']}",
+          {"drivers": drivers})
+
+    target_symbol = None
+    candidates: list[dict] = []
+    for d in drivers:
+        rows = [c for c in queries.best_compounds(conn, d["symbol"], limit=40)
+                if c.get("smiles")]
+        if len(rows) >= 5:
+            target_symbol, candidates = d["symbol"], rows
+            break
+
+    if not candidates:
+        raise ValueError("no measured chemistry against any driving protein")
+    stage("chemistry", f"Found chemistry against {target_symbol}",
+          f"{len(candidates)} compounds with structures and measured potencies",
+          {"symbol": target_symbol, "n": len(candidates)})
+
+    kernel_report = None
+    try:
+        from qc_quantum.kernel import compare_methods
+
+        smiles = [c["smiles"] for c in candidates]
+        kernel_report = compare_methods(smiles, query_index=0, top_n=top_n)
+        agree = kernel_report["agreement"]
+        stage("kernel", "Matched compounds with a quantum kernel",
+              f"{kernel_report['n_qubits']} qubits, "
+              f"{kernel_report['timing']['quantum']}s vs "
+              f"{kernel_report['timing']['rbf']}s classical; rank agreement with "
+              f"RBF {agree['quantum_vs_rbf']}, with Tanimoto "
+              f"{agree['quantum_vs_tanimoto']}",
+              kernel_report)
+        for idx, score in kernel_report["rankings"]["quantum"]:
+            if idx < len(candidates):
+                candidates[idx]["quantum_similarity"] = round(score, 4)
+    except Exception as e:
+        log(f"quantum kernel unavailable: {type(e).__name__}: {e}")
+        stage("kernel", "Quantum kernel skipped", str(e), {})
+
+    profile = {}
+    focus = {"name": best_match["name"], "score": drivers[0]["association"]}
+    try:
+        d = dossier.build(conn, target_symbol, disease=best_match["name"],
+                          skip_literature=True)
+        profile = d.profile
+        if d.focus_disease:
+            focus = d.focus_disease
+    except Exception as e:
+        log(f"dossier unavailable: {e}")
+
+    scored = []
+    for c in candidates:
+        scored.append({**c, "scores": score_candidate(c, profile, focus)})
+    scored.sort(key=lambda c: -c["scores"]["overall"])
+    stage("score", "Scored every candidate",
+          "potency, druglikeness, evidence, safety, selectivity, precedent",
+          {"n": len(scored)})
+
+    best = scored[0]
+    sheet = build_sheet(best["smiles"])
+    stage("recipe", f"Best match: {best.get('pref_name') or best['chembl_id']}",
+          f"overall {best['scores']['overall']}% — "
+          f"{sheet.get('scaffold_size', 0)}-atom scaffold, "
+          f"{len(sheet.get('parts', []))} functional groups",
+          {"chembl_id": best["chembl_id"]})
+
+    n_known = sum(1 for c in scored if c.get("action_type"))
+    caveats = [
+        "This panel is simulated. Real proteomics carries batch effects and a "
+        "dynamic range that hides most disease proteins in blood entirely.",
+        "The scores measure how well a compound binds the driving protein — "
+        "not whether binding treats the disease. A potent blocker of the right "
+        f"target can make a patient worse, and direction of action is recorded "
+        f"for only {n_known} of {len(scored)} candidates.",
+    ]
+    if kernel_report:
+        slow = kernel_report["timing"]["quantum"] / max(kernel_report["timing"]["rbf"], 1e-6)
+        caveats.append(
+            "The quantum kernel ranked these compounds, but it was not used to "
+            "choose the winner. Benchmarked across eight targets in this graph it "
+            "grouped compounds of similar potency worse than both classical "
+            "kernels (0.429 mean gap, against 0.395 for RBF and 0.384 for "
+            f"Tanimoto, with 0.441 for random pairing) at about {slow:.0f}x the "
+            "cost here. It is shown because measuring that is the point, not "
+            "because it earned the decision."
+        )
+
+    return {
+        "mode": "sample",
+        "disease": best_match["name"],
+        "efo_id": best_match["efo_id"],
+        "confidence": best_match["confidence"],
+        "matches": matches,
+        "drivers": drivers,
+        "stages": stages,
+        "kernel": kernel_report,
+        "caveats": caveats,
+        "target": {
+            "symbol": target_symbol,
+            "name": profile.get("name"),
+            "profile": profile,
+            "focus_disease": focus,
+        },
+        "candidates": scored[:20],
+        "best": best,
+        "build_sheet": sheet,
+    }

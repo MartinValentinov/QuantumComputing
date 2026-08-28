@@ -121,6 +121,29 @@ class API:
         ]
         return {"efo_id": efo_id, "n": len(rows), "cures": rows}
 
+    def simulate_panel(self, q: dict) -> dict:
+        from qc_sample import simulate_panel
+
+        seed = int(q["seed"]) if q.get("seed") else None
+        return simulate_panel(
+            self.conn(), self._efo(q),
+            strength=float(q.get("strength", 1.0)), seed=seed,
+        )
+
+    def run_sample(self, body: dict) -> dict:
+        from qc_sample import parse_panel
+
+        panel = body.get("panel")
+        if isinstance(panel, str):
+            panel = parse_panel(panel)
+        if not panel:
+            raise ValueError("no readable protein values in the panel")
+
+        def work(log):
+            return showcase.run_from_sample(self.db_path, panel, log=log)
+
+        return self.jobs.start("sample", work).to_dict()
+
     def depict(self, q: dict) -> dict:
         smiles = q["smiles"]
         try:
@@ -492,6 +515,7 @@ def make_handler(api: API):
         "/api/search_diseases": api.search_diseases,
         "/api/cures": api.cures,
         "/api/depict": api.depict,
+        "/api/simulate_panel": api.simulate_panel,
     }
     POST_ROUTES = {
         "/api/ingest": api.ingest,
@@ -499,6 +523,7 @@ def make_handler(api: API):
         "/api/ask": api.ask,
         "/api/showcase": api.showcase,
         "/api/explain": api.explain,
+        "/api/run_sample": api.run_sample,
     }
 
     class Handler(BaseHTTPRequestHandler):

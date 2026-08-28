@@ -183,7 +183,8 @@ h2.sec:first-child{margin-top:0}
 </div>
 
 <nav>
-  <button data-tab="pipeline" class="on">Pipeline</button>
+  <button data-tab="sample" class="on">Blood sample</button>
+  <button data-tab="pipeline">Pipeline</button>
   <button data-tab="diseases">Diseases</button>
   <button data-tab="cures">Cures</button>
   <button data-tab="landscape">Targets</button>
@@ -195,10 +196,34 @@ h2.sec:first-child{margin-top:0}
 <main>
   <div id="banner"></div>
 
-  <section class="panel on" id="p-pipeline">
+  <section class="panel" id="p-pipeline">
     <h2 class="sec">Full pipeline</h2>
     <div class="sub">Every package in the repo runs in sequence: <b>qc_research</b> ingests and ranks targets, <b>qc_model</b> trains a potency predictor from scratch on the winner's chemistry, and the best-supported candidate gets scored across six categories. It selects and scores real measured chemistry — it does not invent molecules.</div>
     <div id="pipeOut"><div class="note">Pick a disease above and press <b>Run full pipeline</b>.</div></div>
+  </section>
+
+  <section class="panel on" id="p-sample">
+    <h2 class="sec">Blood sample → candidate cure</h2>
+    <div class="sub">A protein panel is matched against disease signatures built from the graph, the driving protein is identified, and its known binders are searched with a <b>quantum kernel</b> alongside two classical ones. Panels here are <b>simulated</b>.</div>
+    <div class="bar" style="padding:0 0 12px;border:none;background:none">
+      <select id="simDisease"></select>
+      <select id="simStrength">
+        <option value="1.0">clear signal</option>
+        <option value="0.6">moderate</option>
+        <option value="0.3">weak / early</option>
+      </select>
+      <button id="btnSim">Generate panel</button>
+      <div class="grow"></div>
+      <button class="primary" id="btnRunSample">▶ Analyse sample</button>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:16px;align-items:start" id="sampleGrid">
+      <div>
+        <div class="sub" style="margin-bottom:6px">Panel — <code>PROTEIN value</code> per line, log2 fold change</div>
+        <textarea id="panelText" spellcheck="false" style="width:100%;height:420px;font-family:var(--mono);font-size:11.5px;padding:10px;border:1px solid var(--firm);border-radius:6px;background:var(--paper);color:var(--ink);resize:vertical"></textarea>
+        <div class="sub" id="panelInfo" style="margin-top:6px"></div>
+      </div>
+      <div id="sampleOut"><div class="note">Generate a panel, or paste your own, then press <b>Analyse sample</b>.</div></div>
+    </div>
   </section>
 
   <section class="panel" id="p-diseases">
@@ -748,6 +773,134 @@ $('#dq').addEventListener('keydown',e=>{ if(e.key==='Enter') searchDiseases(); }
 $('#cureSort').onchange=renderCures;
 $('#cureFilter').oninput=renderCures;
 
+async function loadSimDiseases(){
+  try{
+    const s=await api('/api/stats');
+    $('#simDisease').innerHTML=s.diseases.map(d=>`<option value="${esc(d.efo_id)}">${esc(d.name)}</option>`).join('')
+      || '<option value="">— ingest a disease first —</option>';
+  }catch(e){}
+}
+function panelToText(p){ return Object.entries(p).map(([k,v])=>`${k} ${v}`).join('\n'); }
+function updatePanelInfo(){
+  const lines=$('#panelText').value.split('\n').filter(l=>l.trim() && !l.trim().startsWith('#'));
+  const abn=lines.filter(l=>{const m=l.match(/(-?\d+\.?\d*)\s*$/); return m && Math.abs(+m[1])>1;});
+  $('#panelInfo').innerHTML=`<b>${lines.length}</b> proteins · <b>${abn.length}</b> outside normal range (|log2| &gt; 1)`;
+}
+$('#btnSim').onclick=async()=>{
+  const efo=$('#simDisease').value; if(!efo) return;
+  $('#btnSim').disabled=true;
+  try{
+    const j=await api(`/api/simulate_panel?efo_id=${encodeURIComponent(efo)}&strength=${$('#simStrength').value}`);
+    $('#panelText').value=panelToText(j.panel);
+    updatePanelInfo();
+    $('#sampleOut').innerHTML=`<div class="note">Panel generated for <b>${esc(j.truth.name)}</b> at strength ${j.truth.strength}. The analysis does not get told which disease it was — press <b>Analyse sample</b>.</div>`;
+  }catch(e){ banner(e.message); } finally{ $('#btnSim').disabled=false; }
+};
+$('#panelText').oninput=updatePanelInfo;
+$('#btnRunSample').onclick=async()=>{
+  const text=$('#panelText').value.trim();
+  if(!text){ banner('Generate or paste a panel first.'); return; }
+  const btn=$('#btnRunSample'); btn.disabled=true;
+  const out=$('#sampleOut'); out.innerHTML='';
+  const log=el('pre','log','starting…'); out.appendChild(log);
+  try{
+    const res=await runJob('/api/run_sample',{panel:text},log);
+    await renderSample(res,out);
+  }catch(e){ out.innerHTML=`<div class="err">${esc(e.message)}</div>`; }
+  finally{ btn.disabled=false; }
+};
+
+async function renderSample(res,out){
+  out.innerHTML='';
+  const stages=el('div','stages'); out.appendChild(stages);
+  const nodes=res.stages.map((s,i)=>{
+    const n=el('div','stage');
+    n.innerHTML=`<div class="n">${String(i+1).padStart(2,'0')}</div><div><div class="t">${esc(s.title)}</div><div class="d">${esc(s.detail)}</div></div>`;
+    stages.appendChild(n); return n;
+  });
+  nodes.forEach((n,i)=>setTimeout(()=>n.classList.add('in'),60+i*150));
+  await sleep(res.stages.length*150+250);
+  nodes.forEach(n=>n.classList.add('in'));
+
+  out.appendChild(el('h2','sec','What the sample looks like'));
+  const mt=el('table');
+  mt.innerHTML=`<thead><tr><th>disease</th><th>confidence</th><th>similarity</th><th>signature coverage</th></tr></thead><tbody>${
+    res.matches.map((m,i)=>`<tr><td class="${i===0?'sym':''}">${esc(m.name)}</td>
+      <td class="num">${m.confidence}%</td><td class="num">${num(m.similarity,3)}</td>
+      <td class="num">${m.proteins_measured}/${m.proteins_in_signature}</td></tr>`).join('')}</tbody>`;
+  const mw=el('div','tw'); mw.appendChild(mt); out.appendChild(mw);
+
+  out.appendChild(el('h2','sec','Which proteins are driving it'));
+  const dt=el('table');
+  dt.innerHTML=`<thead><tr><th>protein</th><th>fold change</th><th>direction</th><th>association</th><th>contribution</th></tr></thead><tbody>${
+    res.drivers.map(d=>`<tr><td class="sym">${esc(d.symbol)}</td><td class="num">${d.fold_change}x</td>
+      <td><span class="pill ${d.direction==='elevated'?'r':'n'}">${esc(d.direction)}</span></td>
+      <td class="num">${num(d.association,3)}</td><td class="num">${num(d.contribution,3)}</td></tr>`).join('')}</tbody>`;
+  const dw=el('div','tw'); dw.appendChild(dt); out.appendChild(dw);
+
+  if(res.kernel){
+    const k=res.kernel, a=k.agreement;
+    out.appendChild(el('div','card',
+      `<h3>Quantum kernel — ${k.n_qubits} qubits, ${k.n_molecules} molecules</h3>
+       <div class="comps" style="margin-top:9px">
+         <span class="comp">quantum <b>${k.timing.quantum}s</b></span>
+         <span class="comp">RBF <b>${k.timing.rbf}s</b></span>
+         <span class="comp">Tanimoto <b>${k.timing.tanimoto}s</b></span>
+       </div>
+       <div class="comps">
+         <span class="comp">vs RBF rank agreement <b>${a.quantum_vs_rbf}</b></span>
+         <span class="comp">vs Tanimoto <b>${a.quantum_vs_tanimoto}</b></span>
+       </div>
+       <div class="sub" style="margin:9px 0 0">${a.quantum_vs_rbf>0.95
+         ? 'Identical ranking to the classical RBF kernel. On these features the quantum encoding is reproducing a classical result, not adding to it.'
+         : 'The quantum encoding is ranking these molecules differently from the classical kernels. Different is not the same as better.'}</div>`));
+  }
+
+  if((res.caveats||[]).length){
+    const c=el('div','err'); c.style.marginTop='14px';
+    c.innerHTML='<b>Read before using these numbers</b><br>'+res.caveats.map(esc).join('<br><br>');
+    out.appendChild(c);
+  }
+
+  const best=res.best, bs=res.build_sheet||{};
+  const hero=el('div','hero');
+  hero.innerHTML=`<div><div class="mol" id="sMol"></div></div>
+    <div><h2>${esc(best.pref_name||best.chembl_id)}</h2>
+      <div class="sub" style="margin-top:4px">Best match against <b>${esc(res.target.symbol)}</b></div>
+      <div class="overall"><b id="sOv">0</b><span style="color:var(--muted)">% overall</span></div>
+      <div class="gauges" id="sGauges"></div></div>`;
+  out.appendChild(hero);
+  fillMol($('#sMol'), best.smiles, 560, 360, true);
+  const G=[['potency','Potency'],['druglikeness','Druglikeness'],['target_evidence','Target evidence'],
+           ['safety','Safety'],['selectivity','Selectivity'],['clinical_precedent','Clinical precedent']];
+  $('#sGauges').innerHTML=G.map(([k,l])=>{const v=best.scores[k]??0;const c=v>=66?'g-hi':v>=33?'g-md':'g-lo';
+    return `<div class="gauge ${c}"><div class="lab">${esc(l)}</div><div class="val">${v}%</div><div class="track"><i data-w="${v}"></i></div></div>`;}).join('');
+  setTimeout(()=>$('#sGauges').querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%'),60);
+  countUp($('#sOv'), best.scores.overall);
+
+  if(bs.parts){
+    out.appendChild(el('h2','sec','Build sheet'));
+    out.appendChild(el('div','sub',
+      `<b>${bs.scaffold_size}</b> of ${bs.n_atoms} atoms form the scaffold, ${bs.side_chain_atoms} in side chains. `+
+      `<b>Lipinski:</b> ${esc((bs.lipinski||{}).verdict||'')} — MW ${(bs.lipinski||{}).mw}, clogP ${(bs.lipinski||{}).clogp}. `+
+      `Click a part to highlight it.`));
+    const g=el('div','cards');
+    g.innerHTML=bs.parts.map(p=>`<div class="card" style="cursor:pointer" data-atoms="${esc((p.atoms||[]).join(','))}">
+      <h3 style="color:${p.kind==='warhead'?'var(--oxygen)':p.kind==='liability'?'var(--warn)':'var(--nitrogen)'}">${esc(p.name)}</h3>
+      <div class="sub" style="margin:6px 0 0;font-style:italic">${esc(p.role)}</div></div>`).join('');
+    out.appendChild(g);
+    g.querySelectorAll('.card[data-atoms]').forEach(card=>{
+      card.onclick=async()=>{
+        g.querySelectorAll('.card').forEach(c=>c.style.borderColor='var(--rule)');
+        card.style.borderColor='var(--oxygen)';
+        const node=$('#sMol'); node.innerHTML='<div class="note"><span class="spin"></span></div>';
+        try{ const j=await api(`/api/depict?smiles=${encodeURIComponent(best.smiles)}&w=560&h=360&highlight=${encodeURIComponent(card.dataset.atoms)}`);
+          node.innerHTML=j.svg||''; }catch(e){ node.innerHTML=''; }
+      };
+    });
+  }
+}
+
 const SUGGESTIONS=[
   'Which undrugged target here is the best bet, and what would kill it?',
   'Why do trials fail in this indication?',
@@ -771,7 +924,7 @@ $('#btnAsk').onclick=async()=>{
 };
 $('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btnAsk').click(); });
 
-(async()=>{ try{ await loadStats(); await loadDisease(); }catch(e){ banner(e.message); } })();
+(async()=>{ try{ await loadStats(); await loadDisease(); await loadSimDiseases(); }catch(e){ banner(e.message); } })();
 </script>
 </body>
 </html>
