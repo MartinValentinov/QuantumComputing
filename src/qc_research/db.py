@@ -195,9 +195,6 @@ def now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-# Columns added after the first release. SQLite has no "ADD COLUMN IF NOT
-# EXISTS", so reconcile by hand on connect -- cheap, and keeps older database
-# files working without a manual migration step.
 _ADDED_COLUMNS: dict[str, list[tuple[str, str]]] = {
     "target": [
         ("function", "TEXT"),

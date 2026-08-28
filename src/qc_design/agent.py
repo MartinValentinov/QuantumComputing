@@ -22,7 +22,7 @@ from typing import Any
 from qc_design.tools import Tool, build_registry, dispatch
 
 MODEL = "claude-opus-5"
-MAX_TOKENS = 64000          # streaming, so a large ceiling costs nothing
+MAX_TOKENS = 64000
 
 SYSTEM = """\
 You are a drug discovery research agent. You have tools that read a curated \
@@ -55,7 +55,7 @@ uncertainty where it exists."""
 
 @dataclass
 class Turn:
-    kind: str                     # "text" | "tool_call" | "tool_result" | "thinking"
+    kind: str
     name: str = ""
     payload: Any = None
     seconds: float = 0.0
@@ -102,8 +102,6 @@ def _create(client, messages: list, tools: list[dict]):
         with client.messages.stream(**kwargs) as stream:
             return stream.get_final_message()
     except TypeError as e:
-        # An older SDK rejects `thinking` / `output_config` as unknown kwargs.
-        # Drop them and retry rather than failing the whole run.
         if "thinking" not in str(e) and "output_config" not in str(e):
             raise
         kwargs.pop("thinking", None)
@@ -148,7 +146,6 @@ def ask(
                     response.usage, field_name, 0
                 )
 
-        # A safety decline is a terminal state, not a tool loop.
         if response.stop_reason == "refusal":
             detail = getattr(response, "stop_details", None)
             run.answer = (
@@ -173,7 +170,6 @@ def ask(
             ).strip()
             return run
 
-        # Execute every tool_use block, then return ALL results in one message.
         tool_results = []
         for block in response.content:
             if block.type != "tool_use":

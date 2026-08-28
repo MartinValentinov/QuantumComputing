@@ -38,7 +38,6 @@ class API:
             self._local.conn = db.connect(self.db_path)
         return self._local.conn
 
-    # ---- synchronous reads ----
 
     def stats(self, _q: dict) -> dict:
         conn = self.conn()
@@ -169,8 +168,6 @@ class API:
             raise ValueError(f"no disease matched {q.get('disease')!r}")
         return hits[0]["efo_id"]
 
-
-    # ---- cures, molecules, models ----
 
     def cures(self, q: dict) -> dict:
         """Drugs that act on any target linked to this disease.
@@ -365,7 +362,6 @@ class API:
             "qc_draw": {"renders": "SMILES to SVG, no cheminformatics library"},
         }
 
-    # ---- background jobs ----
 
     def ingest(self, body: dict) -> dict:
         disease = body["disease"]
@@ -376,7 +372,7 @@ class API:
         )
 
         def work(log):
-            conn = db.connect(self.db_path)     # own connection on this thread
+            conn = db.connect(self.db_path)
             import io
             from contextlib import redirect_stdout
 
@@ -508,7 +504,7 @@ def make_handler(api: API):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
-        def log_message(self, fmt, *args):        # quiet; errors still surface
+        def log_message(self, fmt, *args):
             pass
 
         def _send(self, code: int, payload: bytes, ctype: str) -> None:

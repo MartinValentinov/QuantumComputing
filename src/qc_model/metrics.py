@@ -65,7 +65,7 @@ def ridge_regression(
     n_features = x_train.shape[1]
     xb = np.hstack([x_train, np.ones((len(x_train), 1), dtype=np.float32)])
     a = xb.T @ xb + alpha * np.eye(n_features + 1, dtype=np.float32)
-    a[-1, -1] -= alpha                     # do not penalise the intercept
+    a[-1, -1] -= alpha
     return np.linalg.solve(a, xb.T @ y_train)
 
 

@@ -78,8 +78,6 @@ def fetch_articles(pmids: list[str], batch: int = 100) -> list[dict]:
             if article is None or pmid is None:
                 continue
 
-            # Abstracts are often split into labelled sections
-            # (BACKGROUND / METHODS / RESULTS); join them with labels intact.
             parts = []
             for ab in article.findall(".//Abstract/AbstractText"):
                 label = ab.get("Label")

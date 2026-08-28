@@ -15,7 +15,7 @@ from qc_quantum.geometry import Molecule
 @dataclass
 class EnergyResult:
     method: str
-    energy: float          # total energy, Hartree
+    energy: float
     wall_seconds: float
     converged: bool = True
     detail: dict | None = None
@@ -81,7 +81,6 @@ def solve_classical(
         )
 
     if "fci" in methods:
-        # FCI determinant count blows up fast; guard before attempting.
         n_orb = int(m.nao)
         if n_orb <= 12:
             t0 = time.perf_counter()

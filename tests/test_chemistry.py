@@ -17,7 +17,6 @@ import pytest
 from qc_model.fingerprint import featurize, morgan
 from qc_model.smiles import parse
 
-# name -> (equivalent SMILES spellings, expected molecular formula)
 MOLECULES = {
     "benzene":       (["c1ccccc1", "C1=CC=CC=C1"], "C6H6"),
     "benzoic acid":  (["c1ccccc1C(=O)O", "OC(=O)c1ccccc1", "C1=CC=CC=C1C(O)=O"], "C7H6O2"),
@@ -40,8 +39,6 @@ MOLECULES = {
     "salt":          (["[Na+].[Cl-]"], "ClNa"),
 }
 
-# Rings that must NOT be perceived as aromatic, and how many aromatic atoms
-# each is allowed. Tetralin has a genuine benzene ring fused to a saturated one.
 NEGATIVE_CONTROLS = {
     "cyclohexane": ("C1CCCCC1", 0),
     "cyclohexene": ("C1=CCCCC1", 0),
@@ -95,8 +92,8 @@ def test_different_molecules_differ():
 
 def test_bad_smiles_returns_none():
     assert featurize("not a molecule") is None
-    assert featurize("c1ccccc") is None          # unclosed ring
-    assert featurize("CC(") is None              # unbalanced branch
+    assert featurize("c1ccccc") is None
+    assert featurize("CC(") is None
 
 
 def test_featurize_shape():

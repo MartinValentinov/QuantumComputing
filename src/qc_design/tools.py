@@ -55,10 +55,6 @@ _STR = {"type": "string"}
 _INT = {"type": "integer"}
 
 
-# ---------------------------------------------------------------------------
-# handlers
-# ---------------------------------------------------------------------------
-
 def _missing_quantum_deps(exc: Exception) -> dict:
     """A tool that cannot run says so as data, with the fix attached."""
     return {
@@ -187,8 +183,6 @@ def build_registry(conn: sqlite3.Connection) -> dict[str, Tool]:
         formula: str, basis: str = "sto3g", ansatz: str = "uccsd"
     ) -> dict:
         """Quantum + classical energies. Heavy: minutes to hours past ~4 atoms."""
-        # ase and pyscf are imported lazily deep inside qc_quantum, so the
-        # guard has to wrap the call, not just the import.
         try:
             from qc_quantum.benchmark import benchmark
             from qc_quantum.geometry import from_formula

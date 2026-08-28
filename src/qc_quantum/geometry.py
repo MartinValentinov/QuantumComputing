@@ -12,7 +12,7 @@ class Molecule:
     name: str
     atoms: list[tuple[str, float, float, float]]
     charge: int = 0
-    spin: int = 0  # 2S, i.e. number of unpaired electrons
+    spin: int = 0
 
     @property
     def n_atoms(self) -> int:

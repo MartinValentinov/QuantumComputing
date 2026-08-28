@@ -32,9 +32,6 @@ ATOMIC_NUMBER = {
     "Zn": 30, "Se": 34, "Br": 35, "I": 53,
 }
 
-# Crude per-element contributions, in the spirit of Crippen's atomic logP.
-# Not calibrated -- they exist to give the model a polarity signal, and the
-# model is free to ignore them.
 LOGP_CONTRIB = {"C": 0.30, "N": -0.60, "O": -0.55, "S": 0.25, "F": 0.35,
                 "Cl": 0.60, "Br": 0.75, "I": 0.90, "P": -0.20}
 TPSA_CONTRIB = {"N": 12.0, "O": 17.0, "S": 12.0, "P": 13.0}
@@ -83,9 +80,6 @@ def morgan(mol: Mol, radius: int = 2, n_bits: int = 2048, counts: bool = False) 
     for layer in range(1, radius + 1):
         new_ids = []
         for atom in mol.atoms:
-            # Sorting makes the identifier independent of neighbour order,
-            # which is what makes the fingerprint invariant to how the SMILES
-            # happened to be written.
             env = sorted(
                 (int(b.order * 2), ids[mol.other(b, atom.index)])
                 for b in mol.bonds_of(atom.index)
@@ -126,7 +120,6 @@ def descriptors(mol: Mol) -> np.ndarray:
     halogens = sum(1 for a in mol.atoms if a.element in ("F", "Cl", "Br", "I"))
     charge = sum(a.charge for a in mol.atoms)
 
-    # A rotatable bond: single, acyclic, and not to a terminal atom.
     rotatable = sum(
         1 for b in mol.bonds
         if b.order == 1.0 and not b.in_ring

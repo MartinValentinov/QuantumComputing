@@ -82,9 +82,8 @@ def _layout_ring_system(
     origin: tuple[float, float],
 ) -> None:
     remaining = [_order_ring(mol, r) for r in system]
-    centroids: dict[int, tuple[float, float]] = {}   # ring id -> centre
+    centroids: dict[int, tuple[float, float]] = {}
 
-    # ---- seed: the largest ring, as a regular polygon ----
     remaining.sort(key=len, reverse=True)
     first = remaining.pop(0)
     n = len(first)
@@ -96,7 +95,6 @@ def _layout_ring_system(
     centroids[id(first)] = (cx, cy)
     placed_rings = [first]
 
-    # ---- grow: each ring that shares an edge with something already placed ----
     progress = True
     while remaining and progress:
         progress = False
@@ -105,7 +103,6 @@ def _layout_ring_system(
             if len(known) < 2:
                 continue
 
-            # Find an adjacent pair of known atoms -- the shared edge.
             edge = None
             for i in range(len(ring)):
                 a, b = ring[i], ring[(i + 1) % len(ring)]
@@ -120,8 +117,6 @@ def _layout_ring_system(
             bx, by = pos[b]
             mx, my = (ax + bx) / 2, (ay + by) / 2
 
-            # Push the new centre to the far side of the shared edge from the
-            # parent ring's centre.
             parent = min(
                 (pr for pr in placed_rings if a in pr and b in pr),
                 key=lambda pr: len(pr),
@@ -143,8 +138,6 @@ def _layout_ring_system(
             ccx = mx + nx * _apothem(nring)
             ccy = my + ny * _apothem(nring)
 
-            # Step around the new centre from `a`, in whichever direction puts
-            # `b` where it already is. This pins the shared edge exactly.
             ang_a = math.atan2(ay - ccy, ax - ccx)
             ang_b = math.atan2(by - ccy, bx - ccx)
             step = TAU / nring
@@ -168,7 +161,6 @@ def _layout_ring_system(
             remaining.remove(ring)
             progress = True
 
-    # Bridged systems that never shared a full edge: give them their own polygon.
     for k, ring in enumerate(remaining):
         n = len(ring)
         r = _circumradius(n)
@@ -194,7 +186,6 @@ def _layout_chains(mol: Mol, pos: dict[int, tuple[float, float]]) -> None:
         if not pending:
             continue
 
-        # Outward = away from the sum of directions to placed neighbours.
         sx = sy = 0.0
         for n in mol.atoms[current].neighbors:
             if n in pos:
@@ -204,7 +195,7 @@ def _layout_chains(mol: Mol, pos: dict[int, tuple[float, float]]) -> None:
                 sy += (py - cy) / d
         base = math.atan2(-sy, -sx) if (abs(sx) + abs(sy)) > 1e-6 else 0.0
 
-        spread = math.pi / 3          # 120-degree geometry
+        spread = math.pi / 3
         count = len(pending)
         offsets = [(i - (count - 1) / 2) * spread for i in range(count)]
 
@@ -295,7 +286,6 @@ def layout(smiles: str) -> tuple[Mol, dict[int, tuple[float, float]]]:
     systems = _ring_systems(rings)
     sys_of = _system_of(rings)
 
-    # Local coordinates for each system, laid out once at the origin.
     local: dict[int, dict[int, tuple[float, float]]] = {}
     for sid, system in enumerate(systems):
         coords: dict[int, tuple[float, float]] = {}
@@ -335,8 +325,6 @@ def layout(smiles: str) -> tuple[Mol, dict[int, tuple[float, float]]]:
             parent = parents[0]
             px, py = pos[parent]
 
-            # Fan substituents into the widest gap around the parent, which is
-            # what produces the familiar zigzag rather than a straight run.
             used = [
                 math.atan2(pos[n][1] - py, pos[n][0] - px)
                 for n in mol.atoms[parent].neighbors

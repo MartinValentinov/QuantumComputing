@@ -81,8 +81,6 @@ def train_target(
         batch_size, patience, seed, say, "SCAFFOLD SPLIT (honest)", keep=keep,
     )
 
-    # Save the scaffold-split model, never the random-split one. The saved
-    # model should be the one whose reported score means something.
     if save_to and keep:
         from qc_model.nn import save as save_model
 
@@ -126,17 +124,12 @@ def _run_split(X, y, tr, va, te, hidden, dropout, epochs, lr, weight_decay,
     x_tr, x_va, x_te = standardize(X[tr], X[va], X[te])
     y_tr, y_va, y_te = y[tr], y[va], y[te]
 
-    # 1. the floor
     mean_pred = np.full(len(y_te), y_tr.mean(), dtype=np.float32)
     m_mean = evaluate(mean_pred, y_te)
 
-    # 2. linear model on identical features
-    # alpha=100 rather than 10: with 2062 mostly-sparse features and a few
-    # thousand rows, the weaker penalty leaves ridge worse than the mean.
     w = ridge_regression(x_tr, y_tr, alpha=100.0)
     m_ridge = evaluate(ridge_predict(w, x_te), y_te)
 
-    # 3. the network
     model = MLP(X.shape[1], hidden=hidden, dropout=dropout, seed=seed)
     say("  training network")
     history = fit(model, x_tr, y_tr, x_va, y_va, epochs=epochs, lr=lr,

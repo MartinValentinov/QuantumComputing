@@ -30,8 +30,6 @@ class Linear:
 
     def __post_init__(self) -> None:
         rng = np.random.default_rng(self.rng_seed)
-        # He initialisation: variance 2/n_in keeps activations from collapsing
-        # or exploding through ReLU layers.
         self.W = rng.normal(0.0, np.sqrt(2.0 / self.n_in), (self.n_in, self.n_out)).astype(np.float32)
         self.b = np.zeros(self.n_out, dtype=np.float32)
         self.dW = np.zeros_like(self.W)
@@ -43,7 +41,6 @@ class Linear:
         return x @ self.W + self.b
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        # dL/dW = x^T · grad ; dL/db = sum(grad) ; dL/dx = grad · W^T
         self.dW = self._x.T @ grad
         self.db = grad.sum(axis=0)
         return grad @ self.W.T
@@ -240,10 +237,6 @@ def fit(
     return {"history": history, "best_epoch": best["epoch"], "best_valid_rmse": best["rmse"]}
 
 
-# ---------------------------------------------------------------------------
-# persistence
-# ---------------------------------------------------------------------------
-
 def save(model: MLP, path, meta: dict | None = None,
          train_fingerprints: "np.ndarray | None" = None) -> None:
     """Weights plus whatever the caller needs to reproduce the features.
@@ -261,8 +254,6 @@ def save(model: MLP, path, meta: dict | None = None,
     path.parent.mkdir(parents=True, exist_ok=True)
     arrays = {f"p{i}": p for i, (p, _) in enumerate(model.params())}
     if train_fingerprints is not None:
-        # Packed to bits: 3,500 x 2,048 floats is 28 MB, the same data as bits
-        # is under a megabyte, and Tanimoto only needs the bits.
         arrays["train_fp"] = np.packbits(
             (train_fingerprints > 0).astype(np.uint8), axis=1
         )

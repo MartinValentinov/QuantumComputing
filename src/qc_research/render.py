@@ -22,7 +22,6 @@ def dossier_text(d: Dossier) -> str:
         out.append(f"  in: {d.focus_disease['name']}")
     out.append("=" * 78)
 
-    # ---- identity ----
     out.append(_rule("IDENTITY"))
     out.append(f"  ensembl      {d.ensembl_id}")
     out.append(f"  uniprot      {', '.join(p.get('uniprot_ids', [])[:3]) or '-'}")
@@ -33,7 +32,6 @@ def dossier_text(d: Dossier) -> str:
     if p.get("function"):
         out.append(f"  function     {_wrap(p['function'], 60, 15)}")
 
-    # ---- disease association ----
     if d.focus_disease:
         out.append(_rule("DISEASE ASSOCIATION"))
         if d.focus_disease.get("note"):
@@ -51,7 +49,6 @@ def dossier_text(d: Dossier) -> str:
     if p.get("n_associated_diseases"):
         out.append(f"  associated with {p['n_associated_diseases']} diseases total")
 
-    # ---- safety ----
     out.append(_rule("SAFETY SIGNALS"))
     ess = p.get("is_essential")
     out.append(
@@ -71,7 +68,6 @@ def dossier_text(d: Dossier) -> str:
         for m in mp[:4]:
             out.append(f"    - {m}")
 
-    # ---- tractability ----
     out.append(_rule("TRACTABILITY"))
     by_mod: dict[str, list[str]] = {}
     for t in p.get("tractability", []):
@@ -85,7 +81,6 @@ def dossier_text(d: Dossier) -> str:
     for x in hq[:5]:
         out.append(f"    - {x['id']}  {', '.join(x.get('moa') or []) or ''}")
 
-    # ---- chemistry ----
     out.append(_rule("CHEMICAL MATTER"))
     if not chem.get("chembl_target"):
         out.append("  no ChEMBL target -- nothing measured")
@@ -121,7 +116,6 @@ def dossier_text(d: Dossier) -> str:
                     f"{(c['molecular_weight'] or 0):>8.0f}  {label[:40]}"
                 )
 
-    # ---- clinical ----
     out.append(_rule("CLINICAL PRECEDENT"))
     if not clin.get("n_drugs"):
         best = max(
@@ -158,7 +152,6 @@ def dossier_text(d: Dossier) -> str:
             for s in tr["stopped"][:5]:
                 out.append(f"    {s['nct_id']}  {s['phase'] or '-':<12} {(s['reason'] or '')[:44]}")
 
-    # ---- literature ----
     if lit:
         out.append(_rule("LITERATURE"))
         out.append(f"  reviews found  {lit.get('n_reviews', 0)}")
@@ -168,7 +161,6 @@ def dossier_text(d: Dossier) -> str:
             out.append(f"    [{r['year']}] {r['journal']}: {(r['title'] or '')[:52]}")
             out.append(f"           pubmed.ncbi.nlm.nih.gov/{r['pmid']}")
 
-    # ---- assessment ----
     out.append(_rule("ASSESSMENT"))
     out.append(f"  {a.get('verdict', '')}")
     if a.get("strengths"):
@@ -232,10 +224,6 @@ def _wrap(text: str, width: int, indent: int) -> str:
     pad = " " * indent
     return ("\n" + pad).join(lines[:4])
 
-
-# ---------------------------------------------------------------------------
-# investigation reports
-# ---------------------------------------------------------------------------
 
 def investigation_text(inv) -> str:
     out: list[str] = []

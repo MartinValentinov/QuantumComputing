@@ -20,9 +20,8 @@ from typing import Any
 CACHE_DIR = Path(os.environ.get("QC_CACHE_DIR", "data/cache"))
 USER_AGENT = "qc-research/0.1 (research use; contact via github.com/MartinValentinov/QC)"
 
-# Politeness floor between calls to the same host, in seconds.
 _MIN_INTERVAL = {
-    "eutils.ncbi.nlm.nih.gov": 0.35,   # NCBI: 3 req/s without an API key
+    "eutils.ncbi.nlm.nih.gov": 0.35,
     "www.ebi.ac.uk": 0.2,
     "api.platform.opentargets.org": 0.2,
     "clinicaltrials.gov": 0.2,

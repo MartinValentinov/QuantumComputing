@@ -98,7 +98,6 @@ def failure_patterns(conn: sqlite3.Connection, efo_id: str) -> dict:
     ]
     stopped = [t for t in trials if t.get("why_stopped")]
 
-    # Crude but genuinely useful bucketing of free-text stop reasons.
     buckets = {
         "accrual/recruitment": ["accrual", "recruit", "enroll"],
         "funding/business": ["fund", "business", "sponsor", "financial", "strategic"],

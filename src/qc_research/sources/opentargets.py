@@ -108,9 +108,6 @@ def fetch_disease_targets(efo_id: str, size: int = 50) -> dict[str, list[dict]]:
             (x["id"] for x in (t.get("dbXrefs") or []) if x.get("source") == "chEMBL"),
             None,
         )
-        # Tractability tells you whether a target is even worth pursuing with
-        # a small molecule -- a great association score on an undruggable
-        # target is a dead end.
         tract = [
             {"modality": x["modality"], "label": x["label"]}
             for x in (t.get("tractability") or [])
@@ -202,8 +199,6 @@ def fetch_target_profile(ensembl_id: str, n_diseases: int = 20) -> dict:
     if t is None:
         raise ValueError(f"Open Targets has no target {ensembl_id!r}")
 
-    # LOEUF: the loss-of-function observed/expected upper bound. Decile bin 0
-    # means the most constrained 10% of human genes.
     loeuf = next(
         (g for g in (t.get("geneticConstraint") or []) if g["constraintType"] == "lof"),
         None,

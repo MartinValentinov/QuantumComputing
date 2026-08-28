@@ -23,7 +23,7 @@ class Feature:
     name: str
     atoms: set[int]
     why: str
-    kind: str = "group"        # group | warhead | liability
+    kind: str = "group"
 
 
 def _elem(mol: Mol, i: int) -> str:
@@ -63,7 +63,6 @@ def detect(mol: Mol) -> list[Feature]:
     for i, atom in enumerate(mol.atoms):
         el = atom.element
 
-        # ---- carbonyl-derived groups ----
         if el == "C":
             oxo = _double_to(mol, i, "O")
             if oxo:
@@ -73,9 +72,6 @@ def detect(mol: Mol) -> list[Feature]:
 
                 if n_single:
                     n = n_single[0]
-                    # An amide whose carbonyl carries a vinyl group is an
-                    # acrylamide: the alkene is an electrophile that reacts
-                    # irreversibly with a nearby cysteine.
                     vinyl = [
                         c for c in _nb(mol, i)
                         if _elem(mol, c) == "C" and c != n
@@ -114,7 +110,6 @@ def detect(mol: Mol) -> list[Feature]:
                     add("ketone", [i, o_double],
                         "A hydrogen-bond acceptor and a point of metabolic attack.")
 
-            # nitrile
             triple_n = [
                 mol.other(b, i) for b in mol.bonds_of(i)
                 if b.order == 3.0 and _elem(mol, mol.other(b, i)) == "N"
@@ -124,7 +119,6 @@ def detect(mol: Mol) -> list[Feature]:
                     "Small, linear, strongly polar. Often used to pick up a "
                     "hydrogen bond in a pocket too tight for anything bigger.")
 
-        # ---- sulfonamide ----
         if el == "S":
             oxo = _double_to(mol, i, "O")
             n_single = _single_to(mol, i, "N")
@@ -133,7 +127,6 @@ def detect(mol: Mol) -> list[Feature]:
                     "A strong, geometrically distinctive acceptor pair. Common in "
                     "kinase inhibitors and the original antibacterial sulfa drugs.")
 
-        # ---- alcohols and phenols ----
         if el == "O" and atom.n_hydrogens > 0 and len(_nb(mol, i)) == 1:
             parent = _nb(mol, i)[0]
             if not _double_to(mol, parent, "O"):
@@ -145,7 +138,6 @@ def detect(mol: Mol) -> list[Feature]:
                     "An aromatic hydroxyl. Strong hydrogen-bond donor, and a "
                     "frequent target for the liver's conjugating enzymes.")
 
-        # ---- basic amine ----
         if el == "N" and not atom.aromatic and atom.charge == 0:
             heavy = _nb(mol, i)
             carbonyl_neighbor = any(_double_to(mol, c, "O") for c in heavy if _elem(mol, c) == "C")
@@ -156,14 +148,12 @@ def detect(mol: Mol) -> list[Feature]:
                     "solubility and can form a salt bridge, but too many of these "
                     "keeps a molecule out of the brain.")
 
-        # ---- halogens ----
         if el in ("F", "Cl", "Br", "I"):
             add(f"{el} substituent", [i],
                 "Halogens block metabolism at that position and tune electron "
                 "density. Fluorine especially: small enough to sit where a "
                 "hydrogen was, but far harder for the liver to remove.")
 
-    # ---- rings by identity ----
     from qc_model.smiles import find_rings
 
     for ring in find_rings(mol):
@@ -200,7 +190,7 @@ def detect(mol: Mol) -> list[Feature]:
 
 def lipinski(mol: Mol) -> dict:
     """Rule-of-5 assessment, computed from the graph rather than looked up."""
-    from qc_draw.render import ELEMENT_COLOR  # noqa: F401  (kept import-light)
+    from qc_draw.render import ELEMENT_COLOR
     from qc_model.fingerprint import ATOMIC_MASS, LOGP_CONTRIB
 
     mw = sum(ATOMIC_MASS.get(a.element, 12.0) + a.n_hydrogens * 1.008 for a in mol.atoms)

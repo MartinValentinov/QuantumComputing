@@ -20,12 +20,12 @@ class QubitProblem:
 
     molecule: Molecule
     basis: str
-    qubit_op: object  # qiskit.quantum_info.SparsePauliOp
+    qubit_op: object
     n_qubits: int
     n_pauli_terms: int
     nuclear_repulsion: float
     hf_energy: float
-    problem: object  # qiskit_nature ElectronicStructureProblem
+    problem: object
 
     def summary(self) -> str:
         return (

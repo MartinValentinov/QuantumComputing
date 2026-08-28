@@ -78,7 +78,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n{run.answer}")
         return 0
 
-    # ---- ask ----
     from qc_design.agent import ask
 
     try:
@@ -91,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     except RuntimeError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
-    except Exception as e:  # auth, network, model errors
+    except Exception as e:
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
         print(
             "\nIf this is an auth error: export ANTHROPIC_API_KEY, or run "

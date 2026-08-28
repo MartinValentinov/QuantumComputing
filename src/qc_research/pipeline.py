@@ -29,7 +29,7 @@ from qc_research.sources import chembl, clinicaltrials, opentargets, pubmed
 class IngestConfig:
     n_targets: int = 25
     activities_per_target: int = 300
-    min_pchembl: float = 6.0        # 1 uM -- below this is rarely interesting
+    min_pchembl: float = 6.0
     n_trials: int = 300
     papers_per_target: int = 10
     reviews_only: bool = True
@@ -79,7 +79,6 @@ def ingest_disease(
         if verbose:
             print(msg, flush=True)
 
-    # 1. Resolve the name to an ontology ID.
     hits = opentargets.search_disease(disease_query, size=3)
     if not hits:
         raise ValueError(f"no disease matched {disease_query!r}")
@@ -90,7 +89,6 @@ def ingest_disease(
         alts = ", ".join(f"{h['name']} ({h['efo_id']})" for h in hits[1:])
         report.warnings.append(f"other candidate diseases: {alts}")
 
-    # 2. Associated targets.
     started = db.now()
     ot = opentargets.fetch_disease_targets(efo_id, size=cfg.n_targets)
     db.upsert(conn, "disease", ot["disease"])
@@ -104,13 +102,12 @@ def ingest_disease(
         f"(of {ot['_total_associated']} associated)"
     )
 
-    # 3-5. Per target: ChEMBL mapping, activities, mechanisms.
     say(f"[3/6] mapping targets to ChEMBL and pulling bioactivity...")
     all_compound_ids: set[str] = set()
     for i, t in enumerate(ot["target"], 1):
         uniprots = json.loads(t["uniprot_ids"] or "[]")
         chembl_target = None
-        for acc in uniprots[:1]:                # canonical accession only
+        for acc in uniprots[:1]:
             chembl_target = chembl.resolve_target(acc)
             if chembl_target:
                 break
@@ -144,12 +141,10 @@ def ingest_disease(
         )
     conn.commit()
 
-    # 6. Compound structures for everything referenced.
     say(f"[4/6] fetching {len(all_compound_ids)} compound structures...")
     compounds = chembl.fetch_compounds(sorted(all_compound_ids))
     db.upsert(conn, "compound", compounds)
 
-    # 7. Clinical trials, failures included.
     say("[5/6] fetching clinical trials (including terminated)...")
     started = db.now()
     trials = clinicaltrials.fetch_trials(name, limit=cfg.n_trials)
@@ -164,7 +159,6 @@ def ingest_disease(
     )
     say(f"       {len(trials)} trials")
 
-    # 8. Literature per target.
     if cfg.fetch_literature:
         say("[6/6] fetching review literature per target...")
         mapped = conn.execute(

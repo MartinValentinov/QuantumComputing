@@ -79,12 +79,6 @@ def solve_vqe(
 
     electronic = float(result.eigenvalue.real)
 
-    # The eigenvalue is only the *active space* energy. Recovering a total
-    # energy means adding back every constant the problem carries: nuclear
-    # repulsion, and -- crucially -- the frozen-core shift, which is large
-    # (tens of Hartree for anything with a second-row atom). Adding nuclear
-    # repulsion alone silently produces a number that is wrong by exactly the
-    # core energy, and it looks plausible enough to miss.
     total, shifts = _total_energy(problem, electronic, qp.nuclear_repulsion)
 
     return EnergyResult(

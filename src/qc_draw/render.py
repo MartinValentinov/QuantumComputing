@@ -19,8 +19,6 @@ import math
 
 from qc_model.smiles import Mol
 
-# CPK-derived. Carbon is the page's foreground rather than a fixed colour so
-# the drawing works on both light and dark grounds.
 ELEMENT_COLOR = {
     "N": "#2B55C4", "O": "#C0341F", "S": "#B8940B", "P": "#D07A18",
     "F": "#2E9E5B", "Cl": "#2E9E5B", "Br": "#8C3A1E", "I": "#7A3FA8",
@@ -78,7 +76,6 @@ def to_svg(
 
     def project(i: int) -> tuple[float, float]:
         x, y = pos[i]
-        # Negate y: SVG grows downward, chemistry drawings do not.
         return (width / 2 + (x - cx_data) * fit, height / 2 - (y - cy_data) * fit)
 
     parts: list[str] = [
@@ -91,7 +88,6 @@ def to_svg(
     labels = {i: _label_for(mol, i) for i in pos}
     ring_centroid = _ring_centroids(mol, pos)
 
-    # ---- bonds ----
     bond_svg: list[str] = []
     for bond in mol.bonds:
         if bond.a not in pos or bond.b not in pos:
@@ -99,8 +95,6 @@ def to_svg(
         x1, y1 = project(bond.a)
         x2, y2 = project(bond.b)
 
-        # Shorten the line at each end that carries a label, so the stroke does
-        # not run underneath the text.
         x1, y1, x2, y2 = _trim(x1, y1, x2, y2,
                                9.0 if labels.get(bond.a) else 0.0,
                                9.0 if labels.get(bond.b) else 0.0)
@@ -133,8 +127,6 @@ def to_svg(
 
     group_open = '<g fill="none" stroke-linecap="round">'
     if animate:
-        # A dash of the full length, offset by the same amount, animated to
-        # zero: the classic "draw the line" trick, staggered per bond.
         parts.append(group_open)
         for i, svg in enumerate(bond_svg):
             delay = i * 0.045
@@ -149,7 +141,6 @@ def to_svg(
     else:
         parts.append(group_open + "".join(bond_svg) + "</g>")
 
-    # ---- atom labels ----
     label_delay = len(bond_svg) * 0.045
     parts.append(
         '<g font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" '
@@ -163,7 +154,6 @@ def to_svg(
         if i in highlight:
             parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="11" '
                          f'fill="var(--mol-hi, #C0341F)" opacity="0.16"/>')
-        # A disc of page colour behind the glyph punches the bond lines out.
         parts.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="9.5" fill="var(--mol-bg, #fff)"/>'
             f'<text x="{x:.1f}" y="{y:.1f}" fill="{color}"'
@@ -174,8 +164,6 @@ def to_svg(
     parts.append("</g></svg>")
     return "".join(parts)
 
-
-# ---------------------------------------------------------------------------
 
 def _ring_centroids(mol: Mol, pos: dict) -> dict[tuple[int, int], tuple[float, float]]:
     """For each ring bond, the centre of a ring containing it -- so the second
@@ -221,8 +209,6 @@ def _offset_toward(x1, y1, x2, y2, centre, amount):
     nx, ny = -uy, ux
 
     mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-    # centre is in data space, the line in screen space; use only its direction
-    # relative to the bond midpoint after the same y-flip.
     if (centre[0] - mx) * nx - (centre[1] - my) * ny < 0:
         nx, ny = -nx, -ny
 

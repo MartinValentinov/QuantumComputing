@@ -49,8 +49,6 @@ def murcko_scaffold(mol: Mol) -> frozenset[tuple]:
     if not keep:
         return frozenset()
 
-    # Canonical description: multiset of (element, aromatic, degree-in-scaffold)
-    # for atoms, and (element pair, order) for bonds. Independent of atom order.
     atom_feats = []
     for i in sorted(keep):
         a = mol.atoms[i]

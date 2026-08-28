@@ -21,7 +21,7 @@ from typing import Any, Callable
 class Job:
     id: str
     kind: str
-    status: str = "running"          # running | done | error
+    status: str = "running"
     progress: list[str] = field(default_factory=list)
     result: Any = None
     error: str | None = None

@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QC Research</title>
 <style>
-/* Palette from CPK molecular colouring: carbon ink, oxygen accent, nitrogen secondary. */
 :root {
   --paper:#F4F6F8; --surface:#FFF; --sunken:#EAEDF1; --ink:#171A1D; --ink-soft:#3B424B;
   --muted:#69717E; --rule:#DDE2E8; --firm:#C4CBD4;
@@ -91,7 +90,6 @@ h2.sec:first-child{margin-top:0}
 .comp{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;background:var(--sunken);color:var(--muted)}
 .comp b{color:var(--ink)}
 
-/* ---- molecules ---- */
 .mol{background:var(--sunken);border-radius:6px;border:1px solid var(--rule);color:var(--ink-soft);display:block;overflow:hidden}
 .mol svg{display:block;width:100%;height:auto}
 .cure{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s}
@@ -103,7 +101,6 @@ h2.sec:first-child{margin-top:0}
 .tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;background:var(--sunken);color:var(--muted)}
 .tag.t{color:var(--nitrogen)}
 
-/* ---- pipeline ---- */
 .stages{display:flex;flex-direction:column;gap:0;margin:14px 0;border-left:2px solid var(--rule);padding-left:0}
 .stage{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:11px 0 11px 16px;position:relative;
   opacity:0;transform:translateX(-10px);transition:opacity .35s ease,transform .35s ease}
@@ -137,7 +134,6 @@ h2.sec:first-child{margin-top:0}
 .why p{margin:0;font-size:12.5px;color:var(--ink-soft);line-height:1.6}
 .why .src{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px}
 
-/* ---- drawer / modal ---- */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .18s;z-index:40}
 .scrim.on{opacity:1;pointer-events:auto}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(700px,95vw);background:var(--surface);border-left:1px solid var(--rule);transform:translateX(100%);transition:transform .22s;z-index:41;overflow-y:auto;padding:20px}
@@ -298,7 +294,6 @@ async function runJob(path, body, logEl, onProgress){
   });
 }
 
-// ---------- molecules ----------
 const MOL_CACHE = new Map();
 async function molSvg(smiles, w=380, h=260, animate=false){
   const key = `${smiles}|${w}|${h}|${animate}`;
@@ -315,7 +310,6 @@ async function fillMol(node, smiles, w, h, animate){
   node.innerHTML = await molSvg(smiles,w,h,animate);
 }
 
-// ---------- tables ----------
 function renderTable(tableEl, rows, cols, key){
   tableEl.innerHTML='';
   if(!rows.length){ tableEl.innerHTML='<tbody><tr><td class="note">Nothing here yet.</td></tr></tbody>'; return; }
@@ -354,7 +348,6 @@ const LANDSCAPE_COLS=[
   {k:'name',t:'name',render:r=>el('td','wide',esc((r.name||'').slice(0,60)))},
 ];
 
-// ---------- loading ----------
 async function loadStats(){
   const s = await api('/api/stats');
   const c=s.counts;
@@ -407,7 +400,6 @@ async function loadTrials(efo){
   }catch(e){ $('#trials').innerHTML=`<div class="note">${esc(e.message)}</div>`; }
 }
 
-// ---------- cures ----------
 async function loadCures(efo){
   try{
     const j=await api('/api/cures?efo_id='+encodeURIComponent(efo));
@@ -471,7 +463,6 @@ async function openCure(c){
   fillMol($('#dmol'), c.smiles, 640, 380, true);
 }
 
-// ---------- disease search ----------
 async function searchDiseases(){
   const q=$('#dq').value.trim(); if(!q) return;
   $('#dResults').innerHTML='<div class="note"><span class="spin"></span> searching…</div>';
@@ -499,7 +490,6 @@ async function searchDiseases(){
   }catch(e){ $('#dResults').innerHTML=`<div class="err">${esc(e.message)}</div>`; }
 }
 
-// ---------- pipeline showcase ----------
 const STAGE_TITLES = {
   ingest:'Ingest', resolve:'Resolve', rank:'Rank targets', target:'Select target',
   candidates:'Gather chemistry', model:'Train model', score:'Score candidates', select:'Pick winner'
@@ -528,7 +518,6 @@ async function renderPipeline(res, out, log){
   out.innerHTML='';
   out.appendChild(el('div','sub',`<b>${esc(res.disease)}</b> · strategy <b>${esc(res.strategy)}</b> · ${res.stages.length} stages`));
 
-  // stages, revealed one at a time
   const stages=el('div','stages');
   out.appendChild(stages);
   const nodes=[];
@@ -540,10 +529,6 @@ async function renderPipeline(res, out, log){
     stages.appendChild(node);
     nodes.push(node);
   }
-  // Reveal on a timer rather than a CSS keyframe. A keyframe that owns
-  // visibility leaves the content invisible if it is ever throttled -- which
-  // browsers do to background tabs -- so the class is what makes it visible
-  // and the animation only decorates the transition.
   nodes.forEach((n,i)=>setTimeout(()=>n.classList.add('in'), 60+i*150));
   await sleep(res.stages.length*150+300);
   nodes.forEach(n=>n.classList.add('in'));   // belt and braces
@@ -551,7 +536,6 @@ async function renderPipeline(res, out, log){
   const best=res.best, t=res.target;
   if(!best){ out.appendChild(el('div','note','No candidate with a usable structure was found.')); return; }
 
-  // hero: molecule + scorecard
   const hero=el('div','hero');
   hero.innerHTML=`
     <div>
@@ -584,7 +568,6 @@ async function renderPipeline(res, out, log){
     g.innerHTML=`<div class="lab">${esc(label)}</div><div class="val">${v}%</div><div class="track"><i data-w="${v}"></i></div>`;
     gw.appendChild(g);
   });
-  // Same reasoning: fill the bars on a timeout, and never leave them at zero.
   setTimeout(()=>gw.querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%'), 60);
   countUp($('#ovVal'), best.scores.overall);
 
@@ -603,7 +586,6 @@ async function renderPipeline(res, out, log){
       `<span style="color:var(--oxygen)">Safety deductions:</span> ${best.scores.safety_notes.map(esc).join(' · ')}`));
   }
 
-  // why it works
   try{
     const ex=await api('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({target:t,candidate:best})});
@@ -612,7 +594,6 @@ async function renderPipeline(res, out, log){
       ex.sections.map(s=>`<section><h4>${esc(s.heading)}</h4><p>${esc(s.body)}</p><div class="src">source: ${esc(s.source)}</div></section>`).join('');
     out.appendChild(why);
 
-    // What the molecule is actually made of, piece by piece.
     if((ex.groups||[]).length){
       const lip=ex.lipinski||{};
       const g=el('div');
@@ -626,7 +607,6 @@ async function renderPipeline(res, out, log){
           </div>`).join('')}</div>`;
       out.appendChild(g);
 
-      // Clicking a group redraws the molecule with those atoms highlighted.
       g.querySelectorAll('.card[data-atoms]').forEach(card=>{
         card.onclick=async()=>{
           const atoms=card.dataset.atoms;
@@ -641,9 +621,8 @@ async function renderPipeline(res, out, log){
         };
       });
     }
-  }catch(e){ /* explanation is a bonus, not the result */ }
+  }catch(e){}
 
-  // model card
   if(res.model){
     const m=res.model.metrics;
     out.appendChild(el('div','card',
@@ -657,7 +636,6 @@ async function renderPipeline(res, out, log){
        <div class="sub" style="margin:9px 0 0">Scaffold split, so this is what it does on new chemistry — not the inflated random-split number.</div>`));
   }
 
-  // ranked candidates
   const tbl=el('table');
   tbl.innerHTML=`<thead><tr><th>candidate</th><th>overall</th><th>potency</th>${res.model?'<th>predicted pX</th>':''}<th>measured pX</th><th>direction</th><th>phase</th><th>MW</th></tr></thead>
     <tbody>${res.candidates.slice(0,12).map(c=>`<tr data-id="${esc(c.chembl_id)}">
@@ -709,14 +687,10 @@ function countUp(node,target){
     requestAnimationFrame(step);
   };
   step();
-  // requestAnimationFrame is throttled while the tab is hidden. Land on the
-  // real number regardless -- and set `done` first, or the loop resumes and
-  // overwrites the value we just corrected.
   setTimeout(()=>{ done=true; node.textContent=t; }, 1500);
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-// ---------- dossier ----------
 function openDrawer(){ $('#scrim').classList.add('on'); $('#drawer').classList.add('on'); }
 function closeDrawer(){ $('#scrim').classList.remove('on'); $('#drawer').classList.remove('on'); }
 
@@ -759,7 +733,6 @@ async function openDossier(symbol){
   }catch(e){ $('#drawerBody').innerHTML=`<h2>${esc(symbol)}</h2><div class="err">${esc(e.message)}</div>`; }
 }
 
-// ---------- wiring ----------
 function go(tab){
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===tab));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+tab));

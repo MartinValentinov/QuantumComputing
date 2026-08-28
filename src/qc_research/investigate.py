@@ -28,20 +28,12 @@ from qc_research import db, dossier, queries
 from qc_research.pipeline import IngestConfig, ingest_disease
 from qc_research.sources import opentargets
 
-# ---------------------------------------------------------------------------
-# scoring rubric
-# ---------------------------------------------------------------------------
 
-# Each component is normalised to 0..1. Strategies differ only in how they
-# weight them -- which is the honest way to express portfolio strategy.
 STRATEGIES: dict[str, dict[str, float]] = {
-    # Find opportunities nobody has taken. Novelty and evidence dominate.
     "novel":    {"evidence": 0.30, "tractability": 0.20, "chemistry": 0.10,
                  "novelty": 0.30, "safety": 0.10},
-    # Shortest path to a molecule. Existing chemistry and precedent dominate.
     "fast":     {"evidence": 0.20, "tractability": 0.15, "chemistry": 0.35,
                  "precedent": 0.25, "safety": 0.05},
-    # No strong prior.
     "balanced": {"evidence": 0.30, "tractability": 0.20, "chemistry": 0.20,
                  "novelty": 0.10, "safety": 0.20},
 }
@@ -71,7 +63,7 @@ def _precedent(max_phase: float | None) -> float:
 def _safety(profile: dict | None) -> tuple[float, list[str]]:
     """Start at 1.0 and subtract for each named liability."""
     if not profile:
-        return 0.7, ["not yet profiled"]          # neutral-ish prior
+        return 0.7, ["not yet profiled"]
     penalty, reasons = 0.0, []
     if profile.get("is_essential"):
         penalty += 0.35
@@ -113,10 +105,6 @@ def score_target(row: dict, strategy: str, profile: dict | None = None) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# the loop
-# ---------------------------------------------------------------------------
-
 @dataclass
 class Investigation:
     disease: str = ""
@@ -154,7 +142,6 @@ def _survey(conn: sqlite3.Connection, efo_id: str) -> list[dict]:
     for r in conn.execute(sql, (efo_id,)):
         d = dict(r)
         d["_tractability_json"] = d.pop("tractability")
-        # n_potent counts distinct compounds, not measurements.
         d["n_potent"] = conn.execute(
             "SELECT COUNT(DISTINCT chembl_id) AS n FROM activity "
             "WHERE target_chembl_id = ? AND pchembl_value >= 7",
@@ -182,7 +169,6 @@ def investigate(
         if verbose:
             print(m, flush=True)
 
-    # ---- resolve, ingesting first if the graph has nothing ----
     row = conn.execute(
         "SELECT efo_id, name FROM disease WHERE name LIKE ?", (f"%{disease}%",)
     ).fetchone()
@@ -209,7 +195,6 @@ def investigate(
     for r in survey[:top_n]:
         say(f"          {r['survey_score']['score']:.3f}  {r['symbol']}")
 
-    # ---- pass 2: deep dive on the shortlist ----
     say(f"\n[pass 2] deep dive on top {top_n}")
     for r in survey[:top_n]:
         say(f"          profiling {r['symbol']}...")
@@ -221,7 +206,6 @@ def investigate(
         )
         inv.dossiers[r["symbol"]] = d
 
-    # ---- pass 3: re-rank with the safety data the dossier just surfaced ----
     say("\n[pass 3] re-ranking with safety data")
     rescored = []
     for r in survey[:top_n]:

@@ -15,8 +15,6 @@ from qc_quantum.hamiltonian import build_hamiltonian
 from qc_quantum.solvers.classical import EnergyResult, solve_classical
 from qc_quantum.solvers.vqe import solve_vqe
 
-# Chemical accuracy: the error below which predictions become
-# chemically meaningful (~1 kcal/mol).
 CHEMICAL_ACCURACY_HA = 0.0016
 
 

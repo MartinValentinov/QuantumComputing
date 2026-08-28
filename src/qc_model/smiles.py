@@ -23,12 +23,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-# Elements writable without brackets. Two-letter symbols must be tried first,
-# or 'Cl' parses as 'C' followed by 'l'.
 ORGANIC = ["Cl", "Br", "B", "C", "N", "O", "P", "S", "F", "I"]
 AROMATIC_ORGANIC = ["c", "n", "o", "p", "s", "b"]
 
-# Lowest normal valence first; the parser picks the smallest that fits.
 VALENCES: dict[str, tuple[int, ...]] = {
     "B": (3,), "C": (4,), "N": (3, 5), "O": (2,), "P": (3, 5),
     "S": (2, 4, 6), "F": (1,), "Cl": (1,), "Br": (1,), "I": (1,),
@@ -127,12 +124,11 @@ def parse(smiles: str) -> Mol:
             i += 1
             continue
 
-        if ch == ".":            # disconnected fragment
+        if ch == ".":
             prev = None
             i += 1
             continue
 
-        # ---- ring closures ----
         if ch.isdigit() or ch == "%":
             if ch == "%":
                 label, i = smiles[i + 1 : i + 3], i + 3
@@ -151,7 +147,6 @@ def parse(smiles: str) -> Mol:
             pending_bond, pending_aromatic_bond = None, False
             continue
 
-        # ---- atoms ----
         if ch == "[":
             m = _BRACKET.match(smiles, i)
             if not m:
@@ -206,7 +201,6 @@ def _bracket_atom(m: re.Match, index: int) -> Atom:
     else:
         charge = 0
 
-    # `H` with no digit means exactly one hydrogen; absent means zero.
     h_group = m.group("h")
     n_h = (int(h_group) if h_group else 1) if h_group is not None else 0
 
@@ -259,7 +253,6 @@ def _assign_hydrogens(mol: Mol) -> None:
         else:
             used = sum(b.order for b in bonds)
 
-        # Charge shifts the available valence: [NH4+] holds one more bond.
         target = next((v for v in valences if v >= used - atom.charge), valences[-1])
         atom.n_hydrogens = max(0, int(target + atom.charge - used + 0.5))
 
@@ -292,19 +285,6 @@ def _mark_rings(mol: Mol) -> None:
             mol.atoms[bond.b].in_ring = True
 
 
-# ---------------------------------------------------------------------------
-# aromaticity perception
-# ---------------------------------------------------------------------------
-#
-# SMILES lets the same ring be written two ways: aromatic (`c1ccccc1`) or
-# Kekulé (`C1=CC=CC=C1`). They mean the same molecule, so they must produce the
-# same fingerprint -- otherwise the model learns to distinguish two spellings
-# of benzene, which is worse than useless.
-#
-# Full Hückel perception needs proper ring-system analysis. This covers the
-# 5- and 6-membered carbocycles and heterocycles that account for essentially
-# all of medicinal chemistry, which is what this model sees.
-
 AROMATIC_ELEMENTS = {"C", "N", "O", "S", "Se"}
 LONE_PAIR_DONORS = {"N", "O", "S", "Se"}
 
@@ -323,7 +303,6 @@ def find_rings(mol: Mol, max_size: int = 8) -> list[list[int]]:
     for bi, bond in enumerate(mol.bonds):
         if not bond.in_ring:
             continue
-        # BFS from one end to the other without using this bond.
         prev: dict[int, int] = {bond.a: -1}
         queue = [bond.a]
         while queue:
@@ -361,12 +340,6 @@ def perceive_aromaticity(mol: Mol) -> int:
     are the conversions applied.
     """
     rings = find_rings(mol)
-    # Atoms belonging to any ring. A fusion atom's double bond points into the
-    # neighbouring ring, so "sp2" has to mean "double-bonded to some ring atom"
-    # rather than "double-bonded within this ring" -- otherwise each ring of
-    # naphthalene judges its own fusion atoms to be saturated. Requiring the
-    # partner to be a ring atom is what still rejects quinones, whose carbonyls
-    # point outward to oxygen.
     ring_atoms: set[int] = {i for r in rings for i in r}
 
     candidates = []
@@ -380,11 +353,6 @@ def perceive_aromaticity(mol: Mol) -> int:
 
         ring_set = set(ring)
 
-        # An amide-type nitrogen in the ring donates its lone pair into the
-        # system, which is what keeps pyridinones and the xanthine ring of
-        # caffeine aromatic despite their exocyclic carbonyls. Without a donor
-        # present, an exocyclic carbonyl just drains the ring -- which is why
-        # p-benzoquinone is not aromatic and must not be treated as such.
         has_donor = any(
             mol.atoms[i].element in LONE_PAIR_DONORS
             and not any(
@@ -406,7 +374,7 @@ def perceive_aromaticity(mol: Mol) -> int:
                 b.order == 2.0 and mol.atoms[mol.other(b, i)].element in ("O", "N", "S")
                 for b in mol.bonds_of(i)
             ):
-                continue          # carbonyl carbon in an amide-containing ring
+                continue
             ok = False
             break
         if ok:
@@ -422,7 +390,3 @@ def perceive_aromaticity(mol: Mol) -> int:
     return len(candidates)
 
 
-# NOTE: hydrogens are deliberately NOT recounted after aromatisation.
-# Pyridine-N and pyrrole-N both end up with two aromatic bonds but differ by
-# one hydrogen; the Kekule form is the only place that distinction survives.
-# Counting once, before bond orders are rewritten, is what keeps both correct.

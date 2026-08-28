@@ -26,17 +26,9 @@ from qc_research.pipeline import IngestConfig, ingest_disease
 
 Log = Callable[[str], None]
 
-# Cache trained models per target: training takes about a minute and the
-# showcase is often re-run on the same disease.
 _MODEL_CACHE: dict[str, dict] = {}
 
-# Below this many measured compounds there is not enough signal to train
-# anything that survives a scaffold split, whatever the architecture. Set from
-# measurement, not taste: DRD3 with 285 compounds trained to R2 -6.4, while
-# LRRK2 with 3,489 reached 0.50. A scaffold-split test set of ~30 compounds is
-# too small to even estimate R2 reliably.
 MIN_COMPOUNDS = 500
-# Below this held-out R2 the model is not better than guessing the mean.
 MIN_R2 = 0.10
 
 
@@ -57,10 +49,8 @@ def score_candidate(compound: dict, target_profile: dict, focus: dict | None) ->
     ro5 = compound.get("ro5_violations")
     phase = compound.get("max_phase") or 0.0
 
-    # Potency: pChEMBL 5 (10 uM) is the floor, 10 (0.1 nM) is the ceiling.
     potency = _pct((pchembl - 5.0) / 5.0)
 
-    # Druglikeness: Lipinski violations, plus a penalty for extreme size/logP.
     dl = 1.0 - 0.25 * (ro5 if ro5 is not None else 2)
     if mw:
         dl -= 0.3 * max(0.0, (mw - 500) / 500)
@@ -70,7 +60,6 @@ def score_candidate(compound: dict, target_profile: dict, focus: dict | None) ->
 
     evidence = _pct((focus or {}).get("score", 0.0) / 0.6)
 
-    # Safety: start whole, subtract for each named liability on the target.
     safety = 1.0
     notes = []
     if target_profile.get("is_essential"):
@@ -85,7 +74,6 @@ def score_candidate(compound: dict, target_profile: dict, focus: dict | None) ->
         notes.append(f"{n_liab} recorded safety liabilities")
     safety_pct = _pct(safety)
 
-    # Selectivity proxy: a target implicated in everything is hard to hit cleanly.
     n_dis = target_profile.get("n_associated_diseases") or 0
     selectivity = _pct(1.0 - min(n_dis / 2000.0, 1.0))
 
@@ -194,7 +182,6 @@ def run(
         stages.append({"key": key, "title": title, "detail": detail, "data": data or {}})
         log(f"[{len(stages)}] {title} — {detail}")
 
-    # ---- 1. resolve ----
     row = conn.execute(
         "SELECT efo_id, name FROM disease WHERE name LIKE ?", (f"%{disease}%",)
     ).fetchone()
@@ -212,7 +199,6 @@ def run(
         stage("resolve", "Resolved the disease",
               f"{name} → {efo_id}", {"efo_id": efo_id, "name": name})
 
-    # ---- 2. rank targets ----
     inv = inv_mod.investigate(conn, name, strategy=strategy, top_n=5,
                               skip_literature=True, verbose=False)
     shortlist = [
@@ -228,7 +214,6 @@ def run(
           f"{inv.n_surveyed} surveyed, top 5 deep-dived, re-ranked on safety",
           {"shortlist": shortlist, "movement": inv.movement})
 
-    # ---- 3. pick the target with actual chemistry ----
     chosen = next(
         (r for r in inv.shortlist
          if (r["dossier"].chemistry.get("potency") or {}).get("n_potent")),
@@ -249,13 +234,9 @@ def run(
               "focus_disease": d.focus_disease,
           })
 
-    # ---- 4. candidates ----
     candidates = queries.best_compounds(conn, d.symbol, limit=40)
     candidates = [c for c in candidates if c.get("smiles")]
 
-    # Direction of action, where a curator has recorded one. The pipeline does
-    # NOT know which direction treats the disease -- see the caveat below --
-    # but hiding the field entirely would be worse than surfacing it.
     if chembl_target:
         moa = {
             r["chembl_id"]: (r["action_type"], r["mechanism_of_action"])
@@ -272,13 +253,8 @@ def run(
           f"{len(candidates)} compounds with structures and potencies against {d.symbol}",
           {"n": len(candidates)})
 
-    # ---- 5. model ----
     model_entry = _train_model(conn, chembl_target, log) if (use_model and chembl_target) else None
 
-    # The usability check lives here rather than inside _train_model, so it
-    # applies to cache hits as well. A negative R2 means the model is worse
-    # than predicting the mean; showing its numbers beside real measurements
-    # would dress noise up as a result.
     if model_entry and model_entry["metrics"]["r2"] < MIN_R2:
         m = model_entry["metrics"]
         log(f"rejecting model: R² {m['r2']:.3f} is below {MIN_R2}")
@@ -300,7 +276,6 @@ def run(
         stage("model", "Model skipped",
               "not enough measured data on this target to train honestly", {})
 
-    # ---- 6. score ----
     scored = []
     for c in candidates:
         s = score_candidate(c, d.profile, d.focus_disease)
@@ -318,12 +293,6 @@ def run(
     directions = sorted({c.get("action_type") for c in scored if c.get("action_type")})
     n_known = sum(1 for c in scored if c.get("action_type"))
 
-    # This caveat is unconditional because the limitation is unconditional.
-    # Scoring measures how tightly a compound binds, not whether binding helps.
-    # Running Parkinson disease surfaced the failure mode plainly: haloperidol
-    # scores near the top on potency, druglikeness and clinical precedent, and
-    # it is a D2/D3 antagonist that *causes* drug-induced parkinsonism, while
-    # the drugs that treat the disease are agonists like levodopa.
     caveats = [
         "These scores measure how well a compound binds the target — not "
         "whether activating or blocking it treats the disease. A potent "
@@ -454,8 +423,6 @@ def explain(target: dict, candidate: dict) -> dict:
         "source": "ChEMBL physicochemical properties",
     })
 
-    # Functional groups: what the molecule is made of, and what each piece
-    # does to its behaviour in the body. Detected from the graph, not guessed.
     groups = []
     lipinski = {}
     smiles = candidate.get("smiles")

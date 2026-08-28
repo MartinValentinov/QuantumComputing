@@ -30,7 +30,6 @@ class Predictor:
         n_in = self.n_bits + 14
         self.model: MLP = load(weights, n_in, self.hidden, dropout=0.0)
 
-        # Training fingerprints, for the applicability-domain check below.
         data = np.load(str(weights))
         self.train_fp = (
             np.unpackbits(data["train_fp"], axis=1)[:, : self.n_bits].astype(np.float32)
@@ -63,9 +62,6 @@ class Predictor:
         value = float(self.model.predict(x)[0])
         similarity = self.nearest_similarity(vec[: self.n_bits])
 
-        # 0.4 Tanimoto on ECFP4 is the usual line between "same chemical
-        # series" and "unrelated molecule". Below it, the number is an
-        # extrapolation and should be presented as one.
         if similarity != similarity:
             domain = "unknown"
         elif similarity >= 0.4:

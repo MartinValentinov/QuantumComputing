@@ -24,7 +24,6 @@ from dataclasses import dataclass, field
 from qc_research import db
 from qc_research.sources import chembl, clinicaltrials, opentargets, pubmed
 
-# Potency thresholds in pChEMBL (-log10 molar): 9 = 1 nM, 7 = 100 nM, 6 = 1 uM.
 POTENT = 7.0
 VERY_POTENT = 8.0
 
@@ -41,10 +40,6 @@ class Dossier:
     assessment: dict = field(default_factory=dict)
 
 
-# --------------------------------------------------------------------------
-# profile
-# --------------------------------------------------------------------------
-
 def load_profile(conn: sqlite3.Connection, symbol: str, refresh: bool = False) -> dict:
     """Fetch (and cache in the graph) the Open Targets profile for a symbol."""
     row = conn.execute(
@@ -52,7 +47,6 @@ def load_profile(conn: sqlite3.Connection, symbol: str, refresh: bool = False) -
     ).fetchone()
 
     if row is None:
-        # Not in the graph yet -- resolve the symbol through Open Targets search.
         hits = opentargets._query(
             """query($q: String!) {
                  search(queryString: $q, entityNames: ["target"], page:{index:0,size:1}) {
@@ -108,7 +102,7 @@ def load_profile(conn: sqlite3.Connection, symbol: str, refresh: bool = False) -
 
 
 def _row_to_profile(row: sqlite3.Row) -> dict:
-    j = lambda k: json.loads(row[k] or "[]")  # noqa: E731
+    j = lambda k: json.loads(row[k] or "[]")
     return {
         "ensembl_id": row["ensembl_id"],
         "symbol": row["symbol"],
@@ -133,10 +127,6 @@ def _row_to_profile(row: sqlite3.Row) -> dict:
         "chembl_id": row["chembl_id"],
     }
 
-
-# --------------------------------------------------------------------------
-# chemistry
-# --------------------------------------------------------------------------
 
 def chemical_matter(
     conn: sqlite3.Connection, symbol: str, chembl_target: str | None, fetch: bool = True
@@ -181,8 +171,6 @@ def chemical_matter(
     potencies = [r["best_pchembl"] for r in rows if r["best_pchembl"] is not None]
     ro5_ok = [r for r in rows if (r["ro5_violations"] or 0) <= 1]
 
-    # Assay-type spread tells you whether potency was measured many ways or
-    # comes from a single series -- a proxy for how believable the numbers are.
     types = {
         r["standard_type"]: r["n"]
         for r in conn.execute(
@@ -218,10 +206,6 @@ def chemical_matter(
     }
 
 
-# --------------------------------------------------------------------------
-# clinical
-# --------------------------------------------------------------------------
-
 def clinical_precedent(
     conn: sqlite3.Connection, chembl_target: str | None, disease_name: str | None
 ) -> dict:
@@ -248,8 +232,6 @@ def clinical_precedent(
         )
     ]
 
-    # Missing structures for clinical compounds are common when the mechanism
-    # table references molecules the ingest never pulled.
     missing = [d["chembl_id"] for d in drugs if not d["pref_name"] and d["chembl_id"]]
     if missing:
         db.upsert(conn, "compound", chembl.fetch_compounds(missing))
@@ -264,7 +246,6 @@ def clinical_precedent(
 
     phases = [d["max_phase"] for d in drugs if d["max_phase"] is not None]
 
-    # Trials naming any of those drugs, in this indication.
     trial_summary: dict = {}
     named = [d["pref_name"] for d in drugs if d["pref_name"]][:5]
     if named and disease_name:
@@ -290,10 +271,6 @@ def clinical_precedent(
         "trials": trial_summary,
     }
 
-
-# --------------------------------------------------------------------------
-# literature
-# --------------------------------------------------------------------------
 
 def literature(
     conn: sqlite3.Connection, symbol: str, disease_name: str | None, n: int = 15
@@ -340,10 +317,6 @@ def literature(
     }
 
 
-# --------------------------------------------------------------------------
-# assessment
-# --------------------------------------------------------------------------
-
 def assess(d: Dossier) -> dict:
     """Rule-based flags. Every one names the field that produced it."""
     p, chem, clin = d.profile, d.chemistry, d.clinical
@@ -381,9 +354,6 @@ def assess(d: Dossier) -> dict:
     else:
         risks.append("no high-quality chemical probe -- target validation will be harder")
 
-    # ChEMBL's mechanism table only covers compounds with a *curated* MoA, so a
-    # target can have clinical-stage compounds and still show zero mechanisms.
-    # Fall back to the highest max_phase seen among known binders.
     compound_phase = max(
         (c["max_phase"] or 0) for c in (chem.get("top_compounds") or [{"max_phase": 0}])
     )
@@ -414,9 +384,6 @@ def assess(d: Dossier) -> dict:
             f"associated with {n_dis} diseases -- highly pleiotropic, selectivity will be hard"
         )
 
-    # Verdict is a decision tree over two axes: clinical precedent, and how
-    # much chemical matter exists. Tractability gates the whole thing -- an
-    # untractable target is difficult regardless of everything else.
     tractable = "SM" in modalities
 
     if clin.get("n_approved") or best_phase >= 4:
@@ -443,10 +410,6 @@ def assess(d: Dossier) -> dict:
 
     return {"verdict": verdict, "strengths": strengths, "risks": risks}
 
-
-# --------------------------------------------------------------------------
-# assembly
-# --------------------------------------------------------------------------
 
 def build(
     conn: sqlite3.Connection,
@@ -475,9 +438,6 @@ def build(
             }
             disease_name = row["name"]
         else:
-            # Not in the local graph. A cached profile carries no association
-            # list (it is not persisted), so fetch one rather than silently
-            # dropping the association section.
             associations = profile.get("associated_diseases") or []
             if not associations:
                 associations = opentargets.fetch_target_profile(
@@ -493,9 +453,6 @@ def build(
                 d.focus_disease = match
                 disease_name = match["name"]
             else:
-                # Unknown to Open Targets for this target. Still usable as a
-                # free-text query for trials and literature, but there is no
-                # association score to report -- say so rather than implying one.
                 disease_name = disease
                 d.focus_disease = {
                     "efo_id": None,

@@ -17,8 +17,6 @@ from qc_research.http import request
 BASE = "https://www.ebi.ac.uk/chembl/api/data"
 SOURCE = "chembl"
 
-# ChEMBL target types, best-first. SINGLE PROTEIN is what you want for
-# structure-based work; the others are aggregates and much harder to reason about.
 _TYPE_RANK = {
     "SINGLE PROTEIN": 0,
     "PROTEIN COMPLEX": 1,
