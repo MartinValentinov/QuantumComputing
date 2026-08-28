@@ -124,6 +124,8 @@ td.s{font-family:var(--mono);font-weight:600;color:var(--down)}
   <div class="logo">QD<span>E</span></div>
   <div class="tag">Give it a blood sample. It works out what the sample points at, finds the best-matched compound, and shows you what that compound is made of.</div>
   <div class="meta" id="meta"></div>
+  <div style="margin-top:16px"><button class="btn" id="qbtn">Where quantum earns its place →</button></div>
+  <div id="quantum"></div>
 </header>
 
 <div id="view"></div>
@@ -308,6 +310,39 @@ function countUp(node,target){
   step();
   setTimeout(()=>{done=true;node.innerHTML=t+'<span style="font-size:22px">%</span>';},1400);
 }
+
+$('#qbtn').onclick=async()=>{
+  const box=$('#quantum');
+  if(box.dataset.open==='1'){ box.innerHTML=''; box.dataset.open='0'; return; }
+  box.dataset.open='1';
+  box.innerHTML=`<div class="warn" style="border-color:var(--line);background:none;margin-top:16px">
+    <p><b>QDE runs three quantum methods. One of them works.</b></p>
+    <p><b>VQE for electronic structure — works, verified.</b> Against exact diagonalisation of the
+    same Hamiltonian it agrees to 1.5e-07 Hartree, and against full FCI on H₂O it lands inside
+    chemical accuracy. This is a quantum system being modelled by a quantum system; it needs no
+    speedup argument to be the right tool.</p>
+    <p><b>Quantum kernels for matching molecules — measured, does not help.</b> Given the same
+    features as a classical kernel it is worse in every encoding (structural: 0.439 vs 0.355,
+    winning 1 of 6 targets). An earlier comparison here was unfair — quantum got 8 descriptors,
+    Tanimoto got 1024 structural bits — and fixing it made quantum look worse, not better.</p>
+    <p><b>Electronic descriptors for ranking warheads — measured, does not transfer.</b>
+    Active-space electrophilicity ranked methanol above a Michael acceptor. The solver is right;
+    the comparison is not, because a CAS picks oxygen lone pairs in one molecule and a π system in
+    another.</p>
+    <p style="color:var(--dim)">The gap between working VQE and a useful drug score is geometry:
+    a warhead-plus-cysteine reaction energy is one consistent system, so it avoids the
+    comparability problem — but building the adduct needs a 3D geometry optimiser this repo
+    does not have. That blocker is classical.</p>
+    <p><button class="btn" id="qrun">Re-run the audit yourself</button></p></div>`;
+  $('#qrun').onclick=async()=>{
+    const log=document.createElement('pre'); log.className='log'; log.style.marginTop='12px';
+    log.textContent='running — this takes a few minutes…';
+    $('#qrun').after(log); $('#qrun').disabled=true;
+    try{ const r=await runJob('/api/quantum_audit',{},log);
+      log.textContent+='\n\nverdict: '+JSON.stringify(r.verdict);
+    }catch(e){ log.textContent+='\n'+e.message; }
+  };
+};
 
 showSamples();
 </script>

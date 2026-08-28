@@ -645,3 +645,62 @@ Below 1.6x the result is marked *too weak to call*.
 
 Being able to say "I don't know" is the part that makes the other rows worth
 anything.
+
+---
+
+## Where quantum earns its place
+
+QDE runs three quantum methods. One of them works, and the two that do not were
+tested in the way most likely to make them look good.
+
+### VQE for electronic structure — works, verified
+
+| check | result |
+|---|---|
+| VQE vs exact diagonalisation, same Hamiltonian | agrees to **1.5×10⁻⁷ Hartree** |
+| VQE/UCCSD vs full FCI on H₂O | within chemical accuracy (+0.000179 Ha) |
+
+This is the part that needs no disputed speedup argument: a quantum system
+modelled by a quantum system. Active spaces keep it affordable — CAS(4,4) is
+**6 qubits whether the basis provides 12 orbitals or 40**, so accuracy can be
+bought without buying qubits.
+
+### Quantum kernels for matching molecules — measured, does not help
+
+The first comparison in this repo was **not a fair test**: the quantum kernel
+got 8 global descriptors while Tanimoto got 1024 structural bits. That compared
+representations, not kernels. `qc_quantum.fair_test` gives both kernels
+identical features:
+
+| encoding | quantum | classical RBF | quantum wins |
+|---|---|---|---|
+| descriptors | 0.446 | **0.377** | 3 / 6 |
+| structural | 0.439 | **0.355** | 1 / 6 |
+| combined | 0.447 | **0.357** | 1 / 6 |
+
+Fixing the unfairness made quantum look *worse*, not better — better structural
+features help the classical kernel more.
+
+### Electronic descriptors for ranking warheads — measured, does not transfer
+
+Active-space Δ-SCF electrophilicity ranked **methanol above a Michael
+acceptor**; frontier correlation energy ranked **ammonia above benzene**. Both
+are backwards. The solver is not at fault — it reproduces exact diagonalisation
+to seven decimals. The comparison is: a CAS(6,6) selects whichever orbitals sit
+near the frontier, and those are oxygen lone pairs in one molecule and a π
+system in another, so the numbers are not comparable across molecules however
+accurately each is computed.
+
+### What would close the gap
+
+A reaction energy — warhead plus cysteine thiol going to the covalent adduct —
+is **one consistent system**, so it sidesteps the comparability problem
+entirely, and it is exactly the quantity that decides whether a covalent
+inhibitor works. Computing it needs 3D structures for reactants and adduct.
+The blocker is a geometry optimiser, and it is a classical one.
+
+```bash
+PYTHONPATH=src .venv/bin/python -c "
+from qc_research import db; from qc_quantum.audit import run_all
+run_all(db.connect('data/qc.sqlite'))"
+```

@@ -121,6 +121,24 @@ class API:
         ]
         return {"efo_id": efo_id, "n": len(rows), "cures": rows}
 
+    def quantum_audit(self, _body: dict) -> dict:
+        """Re-run every quantum claim and report what the numbers say."""
+        def work(log):
+            import io
+            from contextlib import redirect_stdout
+
+            from qc_quantum.audit import run_all
+
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                result = run_all(db.connect(self.db_path), verbose=True)
+            for line in buf.getvalue().splitlines():
+                if line.strip():
+                    log(line.rstrip())
+            return result
+
+        return self.jobs.start("quantum_audit", work).to_dict()
+
     def presets(self, _q: dict) -> dict:
         """Ready-made samples, each with a thumbnail of its abnormal proteins."""
         from qc_sample.presets import build_all, highlights
@@ -534,6 +552,7 @@ def make_handler(api: API):
         "/api/showcase": api.showcase,
         "/api/explain": api.explain,
         "/api/run_sample": api.run_sample,
+        "/api/quantum_audit": api.quantum_audit,
     }
 
     class Handler(BaseHTTPRequestHandler):
