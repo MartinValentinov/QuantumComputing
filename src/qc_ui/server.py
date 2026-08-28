@@ -121,6 +121,15 @@ class API:
         ]
         return {"efo_id": efo_id, "n": len(rows), "cures": rows}
 
+    def presets(self, _q: dict) -> dict:
+        """Ready-made samples, each with a thumbnail of its abnormal proteins."""
+        from qc_sample.presets import build_all, highlights
+
+        out = []
+        for p in build_all(self.conn()):
+            out.append({**p, "highlights": highlights(p["panel"], 7)})
+        return {"presets": out}
+
     def simulate_panel(self, q: dict) -> dict:
         from qc_sample import simulate_panel
 
@@ -516,6 +525,7 @@ def make_handler(api: API):
         "/api/cures": api.cures,
         "/api/depict": api.depict,
         "/api/simulate_panel": api.simulate_panel,
+        "/api/presets": api.presets,
     }
     POST_ROUTES = {
         "/api/ingest": api.ingest,
@@ -547,8 +557,11 @@ def make_handler(api: API):
             path = parsed.path
 
             if path in ("/", "/index.html"):
-                html = (STATIC / "index.html").read_bytes()
-                return self._send(200, html, "text/html; charset=utf-8")
+                return self._send(200, (STATIC / "index.html").read_bytes(),
+                                  "text/html; charset=utf-8")
+            if path in ("/full", "/full/", "/explore.html"):
+                return self._send(200, (STATIC / "explore.html").read_bytes(),
+                                  "text/html; charset=utf-8")
 
             handler = GET_ROUTES.get(path)
             if handler is None:

@@ -531,11 +531,17 @@ def run_from_sample(
         raise ValueError("no disease signatures in the graph -- ingest a disease first")
     matches = match_diseases(panel, signatures, top_n=5)
     best_match = matches[0]
-    stage("match", f"Matched to {best_match['name']}",
-          f"{best_match['confidence']}% confidence, "
-          f"{best_match['proteins_measured']} of "
-          f"{best_match['proteins_in_signature']} signature proteins measured",
-          {"matches": matches})
+    if not best_match.get("clear", True):
+        stage("match", "No clear disease signal",
+              f"strongest match is {best_match['name']} at only "
+              f"{best_match['enrichment']}x the panel's own noise level",
+              {"matches": matches})
+    else:
+        stage("match", f"Matched to {best_match['name']}",
+              f"{best_match['confidence']}% confidence, signal "
+              f"{best_match['enrichment']}x background across "
+              f"{best_match['proteins_measured']} signature proteins",
+              {"matches": matches})
 
     drivers = driving_targets(panel, signatures[best_match["efo_id"]])
     if not drivers:
@@ -609,7 +615,14 @@ def run_from_sample(
           {"chembl_id": best["chembl_id"]})
 
     n_known = sum(1 for c in scored if c.get("action_type"))
-    caveats = [
+    caveats = []
+    if not best_match.get("clear", True):
+        caveats.append(
+            "The sample carried no clear disease signal, so the compound below "
+            "was chosen from the strongest weak match. It demonstrates the "
+            "mechanics; it is not a finding."
+        )
+    caveats += [
         "This panel is simulated. Real proteomics carries batch effects and a "
         "dynamic range that hides most disease proteins in blood entirely.",
         "The scores measure how well a compound binds the driving protein — "

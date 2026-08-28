@@ -76,6 +76,9 @@ This repository exists to:
 
 # The codebase
 
+The front door is **QDE** — pick a blood sample, get a matched compound and
+what it is made of. The detailed research tools live behind it at `/full`.
+
 The learning journey above is what this repo started as. It has since grown a
 working toolchain — three packages under `src/`, built as independent systems
 that share a repo rather than a dependency graph.
@@ -591,3 +594,54 @@ hinge"*, *"this carboxylic acid kills brain penetration"*. Click a group and the
 structure redraws with those atoms highlighted. It deliberately stops short of a
 synthesis route: that needs a reaction-template database, and a plausible-looking
 route that does not work would be worse than none.
+
+---
+
+## QDE — the simple front door
+
+```bash
+PYTHONPATH=src .venv/bin/python -m qc_ui      #  /  = QDE,  /full = research tools
+```
+
+Six ready-made samples, each showing its abnormal proteins as bars before you
+run anything. Click one and you get seven steps, the matched compound drawn
+large, six scores, and a build sheet of what the molecule is made of. Click a
+functional group and it highlights on the structure.
+
+A real run, pancreatic sample:
+
+```
+Matched to pancreatic ductal adenocarcinoma   91.6% confidence, 3.93x background
+Driving protein: KRAS                          2.81x normal
+Best match: ADAGRASIB                          5.01 nM, approved, 33/43-atom scaffold
+  acrylamide (covalent warhead) · piperazine · diazine ring · nitrile · F · Cl
+```
+
+Adagrasib is the real approved KRAS inhibitor, and the acrylamide the build
+sheet flags is the group that forms its covalent bond to cysteine 12. The
+pipeline reached that from a protein panel without being told the answer.
+
+### The healthy control earns its place
+
+The sixth sample has nothing wrong with it, and it exists to check whether the
+confidence means anything. It did not. Pure assay noise scored a cosine
+similarity of 0.304 against a signature — as high as a genuine tumour sample —
+because cosine ignores magnitude: a small vector pointing roughly the right way
+looks identical to a large one.
+
+Matching now reports two numbers. **Similarity** says whether the panel points
+the right way; **enrichment** says how much larger the deviations are on the
+signature's proteins than on the rest of the panel, so noise sits near 1.0.
+Below 1.6x the result is marked *too weak to call*.
+
+| sample | confidence | signal | call |
+|---|---|---|---|
+| Pancreatic | 91.6% | 3.93x | clear, correct |
+| Parkinson | 99.9% | 4.64x | clear, correct |
+| Diabetes | 100% | 6.91x | clear, correct |
+| Early Parkinson | 57.7% | 2.01x | clear, correct |
+| Neuropathy | 25.3% | 1.13x | **too weak to call** |
+| Healthy control | 35.1% | 1.40x | **too weak to call** |
+
+Being able to say "I don't know" is the part that makes the other rows worth
+anything.

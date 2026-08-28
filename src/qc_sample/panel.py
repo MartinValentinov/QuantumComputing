@@ -123,42 +123,80 @@ def _cosine(a: dict[str, float], b: dict[str, float]) -> float:
     return dot / (na * nb) if na and nb else 0.0
 
 
+MIN_ENRICHMENT = 1.6
+
+
 def match_diseases(
     panel: dict[str, float], signatures: dict[str, dict], top_n: int = 5
 ) -> list[dict]:
     """Rank diseases by how well the panel matches their signature.
 
-    Confidence is the softmax over similarities, which turns a set of scores
-    into numbers that sum to 100. It is a relative ranking, not a probability
-    of disease -- a panel matching nothing still produces a top hit.
+    Two numbers, because either alone is misleading:
+
+      * **similarity** -- cosine against the expected pattern. Says whether the
+        panel points the right way, and ignores magnitude entirely.
+      * **enrichment** -- how much larger the deviations are on the signature's
+        proteins than on the rest of the panel. Says whether there is anything
+        there to point.
+
+    A healthy control makes the case for the second. Pure assay noise scored a
+    cosine similarity of 0.304 against one signature -- as high as a genuine
+    tumour sample -- because a small vector pointing roughly the right way
+    looks identical to a large one under cosine. Enrichment separates them:
+    noise is by definition no stronger on signature proteins than anywhere
+    else, so it sits near 1.0.
+
+    Below MIN_ENRICHMENT the match is reported with `clear = False`. Callers
+    are expected to say "no clear signal" rather than name a disease anyway.
     """
+    magnitudes = [abs(v) for v in panel.values()]
+    background = st_median(magnitudes) if magnitudes else 0.0
+    background = max(background, 1e-6)
+
     scored = []
     for efo_id, sig in signatures.items():
         expected = {
             s: ELEVATED * (score / 0.6) for s, score in sig["proteins"].items()
         }
         sim = _cosine(panel, expected)
-        overlap = len(set(panel) & set(sig["proteins"]))
+
+        measured = [abs(panel[s]) for s in sig["proteins"] if s in panel]
+        signal = (sum(measured) / len(measured)) if measured else 0.0
+        enrichment = signal / background
+
         scored.append(
             {
                 "efo_id": efo_id,
                 "name": sig["name"],
                 "similarity": round(sim, 4),
-                "proteins_measured": overlap,
+                "enrichment": round(enrichment, 3),
+                "signal": round(signal, 3),
+                "background": round(background, 3),
+                "proteins_measured": len(measured),
                 "proteins_in_signature": len(sig["proteins"]),
             }
         )
 
-    scored.sort(key=lambda r: -r["similarity"])
+    for r in scored:
+        r["evidence"] = round(max(r["similarity"], 0.0) * max(r["enrichment"] - 1.0, 0.0), 4)
+
+    scored.sort(key=lambda r: -r["evidence"])
     top = scored[:top_n]
 
-    temperature = 0.15
-    exps = [math.exp(r["similarity"] / temperature) for r in top]
+    temperature = 0.25
+    exps = [math.exp(r["evidence"] / temperature) for r in top]
     total = sum(exps) or 1.0
     for r, e in zip(top, exps):
         r["confidence"] = round(100 * e / total, 1)
+        r["clear"] = bool(r["enrichment"] >= MIN_ENRICHMENT and r["similarity"] > 0.15)
 
     return top
+
+
+def st_median(values: list[float]) -> float:
+    import statistics
+
+    return float(statistics.median(values)) if values else 0.0
 
 
 def driving_targets(
