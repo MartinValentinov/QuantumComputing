@@ -650,20 +650,78 @@ anything.
 
 ## Where quantum earns its place
 
-QDE runs three quantum methods. One of them works, and the two that do not were
-tested in the way most likely to make them look good.
+QDE runs four quantum methods. **One of them now does real work**, and the
+three that do not were each tested in the way most likely to make them look
+good.
 
-### VQE for electronic structure — works, verified
+### Covalent reaction energy — works, and reproduces the gold standard
+
+A covalent inhibitor is decided by one number: how favourable it is for its
+warhead to bond to the target cysteine. Adagrasib works this way — its
+acrylamide accepts the thiol of KRAS cysteine-12.
+
+```
+warhead + CH3SH -> adduct        dE = E(adduct) - E(warhead) - E(CH3SH)
+```
+
+This succeeds where the earlier descriptors failed for one reason: **a reaction
+is one system**. Electrophilicity compared separate molecules whose active
+spaces held different kinds of orbital, so nothing was comparable. Here both
+sides of the arrow contain the same atoms and the same electrons, and the
+answer is a difference, so what the active space misses largely cancels.
+
+Against full CCSD across six warhead chemotypes:
+
+| active space | qubits | rank correlation vs CCSD |
+|---|---|---|
+| CAS(4,4) | 6 | 0.886 |
+| **CAS(6,6)** | **10** | **0.943** |
+| CAS(8,8) | 14 | 0.943 |
+
+Ten qubits reproduces the CCSD ordering, and fourteen adds nothing. All six
+warheads come out exothermic, and every method agrees **vinyl sulfone is the
+most reactive** — which is correct; it is the most electrophilic common
+warhead class.
+
+```
+                     HF      CCSD    quantum (10q)
+vinyl sulfone      -25.6    -26.7      most reactive
+methyl acrylate    -19.2    -21.5
+acrylamide         -18.7    -21.0
+acrylonitrile      -17.7    -19.2
+methyl vinyl ket   -16.7    -19.1
+acrolein           -15.6    -18.2      least reactive
+```
+
+RDKit supplies the geometry: ETKDG embedding plus MMFF, and reaction SMARTS
+build the adduct. Three thia-Michael templates cover carbonyl, sulfone and
+nitrile acceptors, and they correctly **refuse to react** with benzene,
+methanol and propane.
+
+For a whole drug the warhead is excised with one shell of neighbours and capped
+with hydrogen — adagrasib's 43 heavy atoms become a 5-atom model. That model is
+identical for most N-acyl acrylamides, so **this number separates warhead
+chemotypes, not two drugs sharing one warhead**. Adagrasib, sotorasib and
+ibrutinib all reduce to the same acrylamide, which is chemically true.
+
+```bash
+PYTHONPATH=src .venv/bin/python -c "
+from qc_quantum.reaction import benchmark_warheads
+import json; print(json.dumps(benchmark_warheads(), indent=1))"
+```
+
+### VQE itself — correct
 
 | check | result |
 |---|---|
-| VQE vs exact diagonalisation, same Hamiltonian | agrees to **1.5×10⁻⁷ Hartree** |
-| VQE/UCCSD vs full FCI on H₂O | within chemical accuracy (+0.000179 Ha) |
+| VQE vs exact diagonalisation, same Hamiltonian | **1.5×10⁻⁷ Hartree** |
+| VQE vs exact, acrylamide reaction energy | identical to 2 d.p. (−12.19) |
+| VQE/UCCSD vs full FCI on H₂O | within chemical accuracy |
 
-This is the part that needs no disputed speedup argument: a quantum system
-modelled by a quantum system. Active spaces keep it affordable — CAS(4,4) is
-**6 qubits whether the basis provides 12 orbitals or 40**, so accuracy can be
-bought without buying qubits.
+Active spaces decouple accuracy from qubits: CAS(4,4) is 6 qubits whether the
+basis provides 12 orbitals or 40. Exact diagonalisation of the active-space
+Hamiltonian gives the same answer ~60× faster, which is the sensible way to
+sweep active-space size before committing to a VQE run.
 
 ### Quantum kernels for matching molecules — measured, does not help
 
@@ -691,13 +749,10 @@ near the frontier, and those are oxygen lone pairs in one molecule and a π
 system in another, so the numbers are not comparable across molecules however
 accurately each is computed.
 
-### What would close the gap
+### What this cost
 
-A reaction energy — warhead plus cysteine thiol going to the covalent adduct —
-is **one consistent system**, so it sidesteps the comparability problem
-entirely, and it is exactly the quantity that decides whether a covalent
-inhibitor works. Computing it needs 3D structures for reactants and adduct.
-The blocker is a geometry optimiser, and it is a classical one.
+Ten qubits and about a minute per warhead. The blocker was never quantum — it
+was a geometry optimiser, which is why adding RDKit is what unlocked it.
 
 ```bash
 PYTHONPATH=src .venv/bin/python -c "

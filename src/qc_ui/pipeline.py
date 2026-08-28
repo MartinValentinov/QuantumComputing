@@ -608,6 +608,26 @@ def run_from_sample(
 
     best = scored[0]
     sheet = build_sheet(best["smiles"])
+
+    covalent = None
+    try:
+        from qc_quantum.reaction import analyse_covalent
+
+        log("checking for a covalent warhead...")
+        covalent = analyse_covalent(best["smiles"], methods=("hf", "vqe"))
+        if covalent.get("has_warhead") and covalent.get("delta_e_kcal"):
+            vqe = covalent["delta_e_kcal"].get("vqe")
+            stage("quantum", "Computed covalent reactivity on a quantum circuit",
+                  f"{covalent['warhead_model']['smiles']} + cysteine model -> adduct, "
+                  f"dE = {vqe:+.1f} kcal/mol on {covalent['n_qubits']} qubits"
+                  if vqe is not None else "calculation failed",
+                  covalent)
+        else:
+            stage("quantum", "No covalent warhead",
+                  "this compound binds reversibly, so there is no bond-forming "
+                  "reaction to compute", covalent or {})
+    except Exception as e:
+        log(f"covalent analysis unavailable: {type(e).__name__}: {e}")
     stage("recipe", f"Best match: {best.get('pref_name') or best['chembl_id']}",
           f"overall {best['scores']['overall']}% — "
           f"{sheet.get('scaffold_size', 0)}-atom scaffold, "
@@ -616,6 +636,14 @@ def run_from_sample(
 
     n_known = sum(1 for c in scored if c.get("action_type"))
     caveats = []
+    if covalent and covalent.get("has_warhead"):
+        caveats.append(
+            "The covalent reaction energy is computed on a truncated model of the "
+            "warhead, not the whole drug. That model is identical for most N-acyl "
+            "acrylamides, so this number distinguishes warhead chemotypes -- "
+            "acrylamide against vinyl sulfone against acrylonitrile -- and not two "
+            "drugs that share the same warhead."
+        )
     if not best_match.get("clear", True):
         caveats.append(
             "The sample carried no clear disease signal, so the compound below "
@@ -644,6 +672,7 @@ def run_from_sample(
 
     return {
         "mode": "sample",
+        "covalent": covalent,
         "disease": best_match["name"],
         "efo_id": best_match["efo_id"],
         "confidence": best_match["confidence"],
