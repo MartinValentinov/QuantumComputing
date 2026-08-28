@@ -749,10 +749,62 @@ near the frontier, and those are oxygen lone pairs in one molecule and a π
 system in another, so the numbers are not comparable across molecules however
 accurately each is computed.
 
-### What this cost
+### "Isn't quantum supposed to be faster?"
 
-Ten qubits and about a minute per warhead. The blocker was never quantum — it
-was a geometry optimiser, which is why adding RDKit is what unlocked it.
+Yes — on a quantum computer. There isn't one here. Every circuit runs on a
+classical simulator, and simulating n qubits costs 2ⁿ. **The slowness is the
+exponential cost real hardware avoids.** Measured on one machine, same molecule,
+growing the active space:
+
+| active space | qubits | states | classical solve |
+|---|---|---|---|
+| CAS(4,4) | 6 | 64 | 0.00s |
+| CAS(6,6) | 10 | 1,024 | 0.02s |
+| CAS(8,8) | 14 | 16,384 | 1.16s |
+| CAS(10,10) | 18 | 262,144 | **152s** |
+
+Solve time doubles every **0.91 qubits**. Extrapolated: 40 qubits is 83 years,
+50 qubits is 163,000 years, 60 qubits is longer than the Earth has existed. Real
+hardware runs all three in microseconds — it is not simulating the physics, it
+is doing it. `qc_quantum.scaling.measure()` re-runs this.
+
+### Making it fast without cheating
+
+The first version took ~5 hours per drug. It now takes **10.8 seconds**, and the
+physics did not change:
+
+- **Direct diagonalisation instead of the variational loop.** Both solve the
+  same 10-qubit Hamiltonian and agree to 1e-7 Hartree; one takes 0.02s and the
+  other a minute. VQE is the algorithm *hardware* would run; at ten qubits a
+  classical machine diagonalises the matrix faster than it can simulate the
+  circuit that finds the same eigenvalue. Pass `methods=("vqe",)` to run the
+  variational algorithm instead.
+- **SPSA was the wrong idea.** It needs 2 evaluations per iteration regardless
+  of parameter count, which should have beaten SLSQP's 234. Measured, it was
+  slower *and* 8.4 kcal/mol off — its advantage is shot noise on hardware, and
+  on a noiseless simulator gradient methods win outright.
+
+| optimizer | error vs exact | seconds |
+|---|---|---|
+| **SLSQP** | 0.0003 kcal | **18.5** |
+| L_BFGS_B | 0.0002 kcal | 34.1 |
+| COBYLA | 0.0003 kcal | 52.2 |
+| SPSA | 8.37 kcal | 67.5 |
+
+### Running on real hardware
+
+`qc_quantum/backend.py` swaps the estimator; nothing else changes. Save your own
+IBM Quantum token once, from your own shell — nothing here asks for or stores it:
+
+```python
+from qiskit_ibm_runtime import QiskitRuntimeService
+QiskitRuntimeService.save_account(channel="ibm_quantum", token="YOUR_TOKEN")
+```
+
+Two honest warnings. Results will be **worse** than the simulator — current
+devices are noisy enough that a 10-qubit chemistry answer degrades past chemical
+accuracy without error mitigation. And there is a queue. Hardware wins past
+~40–50 qubits, where the simulator stops being possible at all.
 
 ```bash
 PYTHONPATH=src .venv/bin/python -c "

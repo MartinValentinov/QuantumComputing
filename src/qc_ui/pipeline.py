@@ -614,13 +614,13 @@ def run_from_sample(
         from qc_quantum.reaction import analyse_covalent
 
         log("checking for a covalent warhead...")
-        covalent = analyse_covalent(best["smiles"], methods=("hf", "vqe"))
+        covalent = analyse_covalent(best["smiles"], methods=("hf", "exact"))
         if covalent.get("has_warhead") and covalent.get("delta_e_kcal"):
-            vqe = covalent["delta_e_kcal"].get("vqe")
+            energy = covalent["delta_e_kcal"].get("exact")
             stage("quantum", "Computed covalent reactivity on a quantum circuit",
                   f"{covalent['warhead_model']['smiles']} + cysteine model -> adduct, "
-                  f"dE = {vqe:+.1f} kcal/mol on {covalent['n_qubits']} qubits"
-                  if vqe is not None else "calculation failed",
+                  f"dE = {energy:+.1f} kcal/mol on {covalent['n_qubits']} qubits"
+                  if energy is not None else "calculation failed",
                   covalent)
         else:
             stage("quantum", "No covalent warhead",

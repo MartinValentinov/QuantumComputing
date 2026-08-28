@@ -121,6 +121,24 @@ class API:
         ]
         return {"efo_id": efo_id, "n": len(rows), "cures": rows}
 
+    def scaling(self, _body: dict) -> dict:
+        """Measure where classical simulation stops being possible."""
+        def work(log):
+            import io
+            from contextlib import redirect_stdout
+
+            from qc_quantum.scaling import measure
+
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                result = measure(verbose=True)
+            for line in buf.getvalue().splitlines():
+                if line.strip():
+                    log(line.rstrip())
+            return result
+
+        return self.jobs.start("scaling", work).to_dict()
+
     def quantum_audit(self, _body: dict) -> dict:
         """Re-run every quantum claim and report what the numbers say."""
         def work(log):
@@ -553,6 +571,7 @@ def make_handler(api: API):
         "/api/explain": api.explain,
         "/api/run_sample": api.run_sample,
         "/api/quantum_audit": api.quantum_audit,
+        "/api/scaling": api.scaling,
     }
 
     class Handler(BaseHTTPRequestHandler):

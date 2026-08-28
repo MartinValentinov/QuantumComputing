@@ -166,7 +166,7 @@ def _energy(atom: str, basis: str, method: str,
 
 def reaction_energy(
     warhead_smiles: str,
-    methods: tuple[str, ...] = ("hf", "mp2", "ccsd", "vqe"),
+    methods: tuple[str, ...] = ("hf", "ccsd", "exact"),
     basis: str = "6-31g",
     active_electrons: int = 6,
     active_orbitals: int = 6,
@@ -180,6 +180,19 @@ def reaction_energy(
     CAS(6,6) -- ten qubits -- is the default because that is where the ranking
     converges. Against full CCSD across six warhead chemotypes the rank
     correlation is 0.886 at six qubits, 0.943 at ten, and no better at fourteen.
+
+    `exact` rather than `vqe` is the default method, and the distinction is
+    worth being clear about. Both solve the same active-space Hamiltonian and
+    agree to about 1e-7 Hartree; `exact` diagonalises it directly in 0.02s
+    while `vqe` runs the variational loop in roughly a minute. VQE is the
+    algorithm a quantum computer would execute, and it is what you want when
+    the question is "does the quantum algorithm work". `exact` is what you want
+    when the question is "what is the answer", because at ten qubits a
+    classical machine diagonalises the matrix faster than it can simulate the
+    circuit that finds the same eigenvalue.
+
+    That gap is not a flaw in the algorithm, it is the absence of hardware.
+    `qc_quantum.scaling` measures where it reverses.
     """
     t0 = time.perf_counter()
     result = ReactionResult(warhead_smiles=warhead_smiles)
@@ -286,7 +299,7 @@ def warhead_model(smiles: str, shell: int = 1) -> dict | None:
     return None
 
 
-def analyse_covalent(smiles: str, methods: tuple[str, ...] = ("hf", "vqe"),
+def analyse_covalent(smiles: str, methods: tuple[str, ...] = ("hf", "exact"),
                      **kwargs) -> dict:
     """Full path: find a warhead in a drug, model it, compute its reactivity."""
     model = warhead_model(smiles)

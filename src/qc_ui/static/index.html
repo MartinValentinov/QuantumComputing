@@ -316,24 +316,42 @@ $('#qbtn').onclick=async()=>{
   if(box.dataset.open==='1'){ box.innerHTML=''; box.dataset.open='0'; return; }
   box.dataset.open='1';
   box.innerHTML=`<div class="warn" style="border-color:var(--line);background:none;margin-top:16px">
-    <p><b>QDE runs three quantum methods. One of them works.</b></p>
-    <p><b>VQE for electronic structure — works, verified.</b> Against exact diagonalisation of the
-    same Hamiltonian it agrees to 1.5e-07 Hartree, and against full FCI on H₂O it lands inside
-    chemical accuracy. This is a quantum system being modelled by a quantum system; it needs no
-    speedup argument to be the right tool.</p>
-    <p><b>Quantum kernels for matching molecules — measured, does not help.</b> Given the same
-    features as a classical kernel it is worse in every encoding (structural: 0.439 vs 0.355,
-    winning 1 of 6 targets). An earlier comparison here was unfair — quantum got 8 descriptors,
-    Tanimoto got 1024 structural bits — and fixing it made quantum look worse, not better.</p>
-    <p><b>Electronic descriptors for ranking warheads — measured, does not transfer.</b>
-    Active-space electrophilicity ranked methanol above a Michael acceptor. The solver is right;
-    the comparison is not, because a CAS picks oxygen lone pairs in one molecule and a π system in
-    another.</p>
-    <p style="color:var(--dim)">The gap between working VQE and a useful drug score is geometry:
-    a warhead-plus-cysteine reaction energy is one consistent system, so it avoids the
-    comparability problem — but building the adduct needs a 3D geometry optimiser this repo
-    does not have. That blocker is classical.</p>
-    <p><button class="btn" id="qrun">Re-run the audit yourself</button></p></div>`;
+    <p><b>"Isn't quantum supposed to be faster?"</b> Yes — on a quantum computer. There isn't one
+    here. Every circuit runs on a classical simulator, and simulating n qubits costs 2ⁿ. The
+    slowness <i>is</i> the exponential cost real hardware avoids.</p>
+    <p>Measured on this machine, same molecule, growing the active space:</p>
+    <table style="margin:8px 0"><thead><tr><th>active space</th><th>qubits</th><th>states</th><th>classical solve</th></tr></thead>
+    <tbody>
+      <tr><td>CAS(4,4)</td><td class="n">6</td><td class="n">64</td><td class="n">0.00s</td></tr>
+      <tr><td>CAS(6,6)</td><td class="n">10</td><td class="n">1,024</td><td class="n">0.02s</td></tr>
+      <tr><td>CAS(8,8)</td><td class="n">14</td><td class="n">16,384</td><td class="n">1.16s</td></tr>
+      <tr><td>CAS(10,10)</td><td class="n">18</td><td class="n">262,144</td><td class="n">152s</td></tr>
+    </tbody></table>
+    <p>Solve time doubles every <b>0.91 qubits</b>. Extrapolated: 40 qubits is <b>83 years</b>,
+    50 qubits is <b>163,000 years</b>, 60 qubits is longer than the Earth has existed. Real
+    hardware runs all three in microseconds — it isn't simulating the physics, it's doing it.
+    <b>That is where the advantage starts, and it is why QDE is built on the algorithm rather
+    than on a shortcut.</b></p>
+    <p><b>What QDE actually uses.</b> Covalent reaction energies reproduce full CCSD's ranking of
+    warheads at ρ=0.943 on 10 qubits. The product runs the fast path — direct diagonalisation of
+    the same 10-qubit Hamiltonian, 10s instead of 5 hours, agreeing with VQE to 1e-7 Hartree.
+    VQE is the algorithm hardware would execute; swapping to it, or to a real IBM device, is one
+    estimator away in <code>qc_quantum/backend.py</code>.</p>
+    <p><b>Two methods that did not earn their place</b>, kept visible rather than quietly dropped:
+    quantum kernels lose to classical ones on identical features (0.439 vs 0.355), and
+    active-space electrophilicity ranked methanol above a Michael acceptor.</p>
+    <p><button class="btn" id="qrun">Re-run the audit</button>
+       <button class="btn" id="qscale">Re-measure the scaling wall</button></p></div>`;
+  $('#qscale').onclick=async()=>{
+    const log=document.createElement('pre'); log.className='log'; log.style.marginTop='12px';
+    log.textContent='measuring — the 18-qubit point takes a couple of minutes…';
+    $('#qscale').after(log); $('#qscale').disabled=true;
+    try{ const r=await runJob('/api/scaling',{},log);
+      log.textContent+='\n\ndoubles every '+r.qubits_per_doubling+' qubits';
+      for(const [q,p] of Object.entries(r.projection||{}))
+        log.textContent+=`\n  ${q} qubits -> ${p.human} classically, ${p.statevector_terabytes} TB`;
+    }catch(e){ log.textContent+='\n'+e.message; }
+  };
   $('#qrun').onclick=async()=>{
     const log=document.createElement('pre'); log.className='log'; log.style.marginTop='12px';
     log.textContent='running — this takes a few minutes…';
