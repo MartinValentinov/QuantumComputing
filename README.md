@@ -693,6 +693,34 @@ methyl vinyl ket   -16.7    -19.1
 acrolein           -15.6    -18.2      least reactive
 ```
 
+### The flagship compound was the one it missed
+
+Both the detection pattern and the reaction template pinned the alpha carbon as
+`[CH]` — exactly one hydrogen. Adagrasib carries a **2-fluoroacrylamide**, so
+its alpha carbon holds a fluorine and no hydrogen, and every alpha-substituted
+warhead fell straight through. The pipeline reported *"No covalent warhead —
+this compound binds reversibly"* for the approved covalent KRAS inhibitor it
+was built to showcase, while the build sheet on the same page correctly
+labelled the acrylamide. Nothing raised; the step was simply skipped.
+
+`[CX3]` asks only for an sp2 carbon, which is the property that actually makes
+the alkene electrophilic. The product alpha carbon is now left implicit too —
+it ends the addition with one hydrogen when substituted and two when not, so
+pinning it either way was wrong.
+
+The chemistry confirms the fix rather than just the plumbing:
+
+| warhead | alpha substituent | dE (HF, kcal/mol) |
+|---|---|---|
+| 2-fluoroacrylamide | −F, withdrawing | **−23.4** |
+| acrylamide | −H | −18.7 |
+| methacrylamide | −CH₃, donating | −16.3 |
+
+Withdrawing groups make the alkene more electrophilic and donating groups less,
+which is exactly why adagrasib carries a fluorine there. The step now runs in
+the product: `C=C(F)C(N)=O + cysteine model -> adduct, dE = -10.0 kcal/mol on
+10 qubits`.
+
 RDKit supplies the geometry: ETKDG embedding plus MMFF, and reaction SMARTS
 build the adduct. Three thia-Michael templates cover carbonyl, sulfone and
 nitrile acceptors, and they correctly **refuse to react** with benzene,

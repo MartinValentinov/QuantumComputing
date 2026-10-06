@@ -32,9 +32,20 @@ HARTREE_TO_KCAL = 627.509
 
 THIOL = "CS"
 
-MICHAEL = "[CH2:1]=[CH:2][C:3]=[O:4].[S:5]>>[CH2:1]([S:5])[CH2:2][C:3]=[O:4]"
-MICHAEL_SULFONE = "[CH2:1]=[CH:2][S:3](=[O:4])=[O:6].[S:5]>>[CH2:1]([S:5])[CH2:2][S:3](=[O:4])=[O:6]"
-MICHAEL_NITRILE = "[CH2:1]=[CH:2][C:3]#[N:4].[S:5]>>[CH2:1]([S:5])[CH2:2][C:3]#[N:4]"
+MICHAEL = "[CH2:1]=[C:2][C:3]=[O:4].[S:5]>>[CH2:1]([S:5])[C:2][C:3]=[O:4]"
+MICHAEL_SULFONE = "[CH2:1]=[C:2][S:3](=[O:4])=[O:6].[S:5]>>[CH2:1]([S:5])[C:2][S:3](=[O:4])=[O:6]"
+MICHAEL_NITRILE = "[CH2:1]=[C:2][C:3]#[N:4].[S:5]>>[CH2:1]([S:5])[C:2][C:3]#[N:4]"
+
+"""The alpha carbon is written [C:2] on both sides of the arrow.
+
+As [CH:2] the template matched only unsubstituted acceptors, so adagrasib's
+2 fluoroacrylamide fell through with "no thia-Michael template matched". The
+product side matters just as much: the alpha carbon ends a thia-Michael
+addition with one hydrogen when it carries a substituent and two when it does
+not, so pinning it to [CH2:2] would have been wrong for exactly the molecules
+this fix is meant to reach. Leaving the count implicit lets RDKit fill the
+valence, which is right in both cases.
+"""
 
 TEMPLATES = [
     ("Michael acceptor (carbonyl)", MICHAEL),
@@ -238,10 +249,20 @@ def reaction_energy(
 
 
 MICHAEL_PATTERNS = [
-    ("[CH2]=[CH][CX3]=[OX1]", "acrylamide/acrylate/vinyl ketone"),
-    ("[CH2]=[CH][SX4](=[OX1])=[OX1]", "vinyl sulfone"),
-    ("[CH2]=[CH]C#N", "acrylonitrile"),
+    ("[CH2]=[CX3][CX3]=[OX1]", "acrylamide/acrylate/vinyl ketone"),
+    ("[CH2]=[CX3][SX4](=[OX1])=[OX1]", "vinyl sulfone"),
+    ("[CH2]=[CX3]C#N", "acrylonitrile"),
 ]
+"""The alpha carbon is [CX3], not [CH].
+
+[CH] means exactly one hydrogen, which silently excludes every alpha
+substituted Michael acceptor. Adagrasib carries a 2 fluoroacrylamide, so its
+alpha carbon has a fluorine and no hydrogen, and the whole covalent branch of
+the pipeline skipped the one approved drug it was written for. [CX3] asks only
+for an sp2 carbon, which is the property that actually makes the alkene
+electrophilic. The terminal [CH2] stays: beta substituted acceptors are far
+less reactive and are not what these warheads are.
+"""
 
 
 def warhead_model(smiles: str, shell: int = 1) -> dict | None:
