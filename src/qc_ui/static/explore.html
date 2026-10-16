@@ -556,7 +556,7 @@ async function renderPipeline(res, out, log){
   }
   nodes.forEach((n,i)=>setTimeout(()=>n.classList.add('in'), 60+i*150));
   await sleep(res.stages.length*150+300);
-  nodes.forEach(n=>n.classList.add('in'));   // belt and braces
+  nodes.forEach(n=>n.classList.add('in'));
 
   const best=res.best, t=res.target;
   if(!best){ out.appendChild(el('div','note','No candidate with a usable structure was found.')); return; }
