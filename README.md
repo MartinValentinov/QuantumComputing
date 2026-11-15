@@ -242,7 +242,7 @@ Set `NCBI_API_KEY` to raise the PubMed rate limit from 3/s to 10/s. Optional.
 
 ---
 
-## qc_quantum — benchmarking, not magic
+## qc_quantum — benchmarking
 
 ```bash
 PYTHONPATH=src qc/qiskit-modern/bin/python -m qc_quantum.benchmark H2
